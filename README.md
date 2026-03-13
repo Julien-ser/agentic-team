@@ -21,6 +21,12 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 - ✅ Task 1.3: Create database schema for shared state
 - ✅ Task 1.4: Setup project dependencies and environment configuration
 
+**Phase 2 - Core Infrastructure & Wiggum Loop Enhancement** (In Progress)
+- ✅ Task 2.1: Implement the enhanced wiggum loop with role-based agent selection
+- [ ] Task 2.2: Build the message broker using Redis pub/sub
+- [ ] Task 2.3: Create agent base class and lifecycle manager
+- [ ] Task 2.4: Implement shared state manager with SQLite
+
 ## Quick Start
 
 ### Prerequisites

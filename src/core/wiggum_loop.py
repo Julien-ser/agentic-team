@@ -68,8 +68,10 @@ class EnhancedWiggumLoop:
     """
 
     # Regex pattern to match role tags: [SECURITY], [SW_DEV], [FRONTEND]
+    # Supports markdown task list format: - [ ] [ROLE] description
     TASK_TAG_PATTERN = re.compile(
-        r"\[(SECURITY|SW_DEV|FRONTEND)\]\s*(.+)", re.IGNORECASE
+        r"^\s*(?:[-*]\s*(?:\[.\]?\])?\s*)?\[(SECURITY|SW_DEV|FRONTEND)\]\s*(.+)",
+        re.IGNORECASE,
     )
 
     def __init__(
@@ -115,9 +117,12 @@ class EnhancedWiggumLoop:
 
         logger.info(f"EnhancedWiggumLoop initialized with {dispatch_strategy} dispatch")
 
-    def load_tasks_from_file(self) -> List[TaskModel]:
+    def load_tasks_from_file(self, file_path: Optional[str] = None) -> List[TaskModel]:
         """
         Parse TASKS.md and extract tasks with role tags.
+
+        Args:
+            file_path: Optional path to tasks file. If None, uses self.tasks_file.
 
         Returns:
             List of TaskModel objects with role assignments
@@ -126,12 +131,13 @@ class EnhancedWiggumLoop:
             FileNotFoundError: If TASKS.md not found
             ValueError: If task parsing fails
         """
-        if not self.tasks_file.exists():
-            raise FileNotFoundError(f"Tasks file not found: {self.tasks_file}")
+        tasks_file = Path(file_path) if file_path else self.tasks_file
+        if not tasks_file.exists():
+            raise FileNotFoundError(f"Tasks file not found: {tasks_file}")
 
-        logger.info(f"Loading tasks from {self.tasks_file}")
+        logger.info(f"Loading tasks from {tasks_file}")
 
-        with open(self.tasks_file, "r", encoding="utf-8") as f:
+        with open(tasks_file, "r", encoding="utf-8") as f:
             content = f.read()
 
         tasks = []

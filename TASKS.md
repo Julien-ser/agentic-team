@@ -70,7 +70,7 @@
 
 ## Phase 2: Core Infrastructure & Wiggum Loop Enhancement
 
-- [ ] **Task 2.1**: Implement the enhanced wiggum loop with role-based agent selection
+- [x] **Task 2.1**: Implement the enhanced wiggum loop with role-based agent selection
   - **Deliverable**: `src/core/wiggum_loop.py` with class `EnhancedWiggumLoop`
   - **Features**:
     - Load TASKS.md and parse tasks by role using tags like `[SECURITY]`, `[SW_DEV]`, `[FRONTEND]`

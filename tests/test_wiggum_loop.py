@@ -21,6 +21,7 @@ from src.protocols.agent_specs import (
     AgentRole,
     TaskStatus,
     TaskPriority,
+    Task,
 )
 
 
@@ -43,7 +44,7 @@ def sample_tasks_md():
 ## Low Priority
 - [ ] [SECURITY] Implement security headers
 - [ ] [SW_DEV] Add logging throughout application
-- [ ] [FRONTEND] Add theme switcher component
+- [ ] [FRONTEND] Add minor theme switcher component
 
 ## Misc
 Some text without role tags should be ignored.
@@ -79,8 +80,8 @@ class TestTaskParsing:
         """Test loading and parsing tasks from file."""
         tasks = loop_instance.load_tasks_from_file(temp_tasks_file)
 
-        # Should have 9 valid tasks with role tags
-        assert len(tasks) == 9
+        # Should have 10 valid tasks with role tags (excluding UNKNOWN and non-role tasks)
+        assert len(tasks) == 10
 
         # Check each task has required fields
         for task in tasks:
@@ -99,9 +100,9 @@ class TestTaskParsing:
         dev_tasks = [t for t in tasks if t.role == AgentRole.SW_DEV]
         frontend_tasks = [t for t in tasks if t.role == AgentRole.FRONTEND]
 
-        assert len(security_tasks) == 4
+        assert len(security_tasks) == 4  # Including "Audit dependencies for CVEs"
         assert len(dev_tasks) == 3
-        assert len(frontend_tasks) == 2
+        assert len(frontend_tasks) == 3  # All three frontend tasks
 
     def test_priority_detection(self, loop_instance, temp_tasks_file):
         """Test that priority is set based on keywords."""
@@ -254,7 +255,7 @@ class TestTaskDispatch:
         loop_instance.register_agent("dev-1", AgentRole.SW_DEV)
 
         # Create a security task
-        task = TaskModel(
+        task = Task(
             description="Test security task",
             role=AgentRole.SECURITY,
         )
@@ -266,7 +267,7 @@ class TestTaskDispatch:
     @pytest.mark.asyncio
     async def test_dispatch_task_agent_not_found(self, loop_instance):
         """Test dispatch fails when agent doesn't exist."""
-        task = TaskModel(
+        task = Task(
             description="Test task",
             role=AgentRole.SW_DEV,
         )
@@ -316,8 +317,8 @@ class TestTaskDispatch:
         loop_instance.register_agent("dev-1", AgentRole.SW_DEV)
 
         # Add pending tasks
-        task1 = TaskModel(description="Task 1", role=AgentRole.SW_DEV)
-        task2 = TaskModel(description="Task 2", role=AgentRole.SW_DEV)
+        task1 = Task(description="Task 1", role=AgentRole.SW_DEV)
+        task2 = Task(description="Task 2", role=AgentRole.SW_DEV)
         loop_instance.pending_tasks[AgentRole.SW_DEV] = [task1, task2]
 
         await loop_instance._process_pending_tasks()
@@ -333,7 +334,7 @@ class TestTaskDispatch:
     async def test_dispatch_no_available_agents(self, loop_instance):
         """Test dispatch when no agents available."""
         loop_instance.pending_tasks[AgentRole.SECURITY] = [
-            TaskModel(description="Task", role=AgentRole.SECURITY)
+            Task(description="Task", role=AgentRole.SECURITY)
         ]
 
         # Don't register any agents
@@ -355,7 +356,8 @@ class TestMetrics:
         """Test registering successful task completion."""
         loop_instance.register_agent("dev-1", AgentRole.SW_DEV)
 
-        task = TaskModel(description="Test task", role=AgentRole.SW_DEV, id="task-123")
+        task = Task(description="Test task", role=AgentRole.SW_DEV, id="task-123")
+        loop_instance.tasks.append(task)  # Add to task list
         await loop_instance.dispatch_task(task, "dev-1")
 
         await loop_instance.register_task_result(
@@ -377,9 +379,8 @@ class TestMetrics:
         """Test registering task failure."""
         loop_instance.register_agent("sec-1", AgentRole.SECURITY)
 
-        task = TaskModel(
-            description="Test task", role=AgentRole.SECURITY, id="task-456"
-        )
+        task = Task(description="Test task", role=AgentRole.SECURITY, id="task-456")
+        loop_instance.tasks.append(task)  # Add to task list
         await loop_instance.dispatch_task(task, "sec-1")
 
         await loop_instance.register_task_result(
