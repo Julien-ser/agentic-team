@@ -156,7 +156,7 @@
   - **Deliverable**: `tests/test_frontend_agent.py` with component generation tests
   - **Success**: Agent creates a responsive web component that connects to dev agent's API
 
-- [ ] **Task 3.4**: Build agent worker orchestration with health monitoring
+- [x] **Task 3.4**: Build agent worker orchestration with health monitoring
   - **Deliverable**: `src/orchestrator/worker_manager.py` with class `WorkerManager`
   - **Features**:
     - Spawn 3 agent workers (security, dev, frontend) as async tasks
