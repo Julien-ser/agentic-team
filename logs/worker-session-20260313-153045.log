@@ -2346,3 +2346,71 @@ tests/test_wiggum_loop.py::TestLoopExecution::test_stop_flag
   /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/core/wiggum_loop.py:439: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
     iteration_duration = (datetime.utcnow() - start_time).total_seconds()
 [0m
+Perfect! All 28 tests pass. Now let me commit the changes and push to GitHub as per the workflow:
+[0m$ [0mgit status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README.md
+	modified:   TASKS.md
+	modified:   logs/worker-session-20260313-153045.log
+	modified:   src/core/wiggum_loop.py
+	modified:   tests/test_wiggum_loop.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	logs/iteration-10.md
+	src/__pycache__/
+	src/core/__pycache__/
+	src/protocols/__pycache__/
+	tests/__pycache__/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[0m
+[0m$ [0mgit add .
+[0m
+[0m$ [0mgit diff --cached --stat
+README.md                                          |    6 +
+ TASKS.md                                           |    2 +-
+ logs/iteration-10.md                               | 2463 ++++++++++++++++++++
+ logs/worker-session-20260313-153045.log            | 2087 +++++++++++++++++
+ src/__pycache__/config.cpython-314.pyc             |  Bin 0 -> 3702 bytes
+ src/core/__pycache__/__init__.cpython-314.pyc      |  Bin 0 -> 183 bytes
+ src/core/__pycache__/wiggum_loop.cpython-314.pyc   |  Bin 0 -> 27294 bytes
+ src/core/wiggum_loop.py                            |   18 +-
+ .../__pycache__/agent_specs.cpython-314.pyc        |  Bin 0 -> 13950 bytes
+ .../test_wiggum_loop.cpython-314-pytest-9.0.2.pyc  |  Bin 0 -> 86223 bytes
+ tests/test_wiggum_loop.py                          |   29 +-
+ 11 files changed, 4584 insertions(+), 21 deletions(-)
+[0m
+I need to properly stage the relevant files (excluding logs and pycache):
+[0m$ [0mgit add README.md TASKS.md src/core/wiggum_loop.py tests/test_wiggum_loop.py
+[0m
+[0m$ [0mgit commit -m "Task 2.1: Implement enhanced wiggum loop with role-based agent selection
+
+- Enhanced wiggum_loop.py with full feature set:
+  * Parse TASKS.md with markdown task list support
+  * Role-based task dispatch (SECURITY, SW_DEV, FRONTEND)
+  * Round-robin agent selection strategy
+  * Comprehensive metrics tracking (AgentMetrics, LoopMetrics)
+  * Continuous async loop execution
+- Fixed regex pattern to handle markdown task lists (- [ ] [ROLE] format)
+- Added optional file_path parameter to load_tasks_from_file for testing
+- Updated tests to work with new regex and added missing imports
+- All 28 tests passing"
+[main 31d5663] Task 2.1: Implement enhanced wiggum loop with role-based agent selection
+ 11 files changed, 4584 insertions(+), 21 deletions(-)
+ create mode 100644 logs/iteration-10.md
+ create mode 100644 src/__pycache__/config.cpython-314.pyc
+ create mode 100644 src/core/__pycache__/__init__.cpython-314.pyc
+ create mode 100644 src/core/__pycache__/wiggum_loop.cpython-314.pyc
+ create mode 100644 src/protocols/__pycache__/agent_specs.cpython-314.pyc
+ create mode 100644 tests/__pycache__/test_wiggum_loop.cpython-314-pytest-9.0.2.pyc
+[0m
+[0m$ [0mgit push origin main
+To github.com:Julien-ser/agentic-team.git
+   e24d714..31d5663  main -> main
+[0m
+📝 Log saved: logs/iteration-10.md
+📊 Token Usage: 40000 / Session: 50000 / 64000
