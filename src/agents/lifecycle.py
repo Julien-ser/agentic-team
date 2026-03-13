@@ -329,6 +329,39 @@ class LifecycleManager:
 
         return results
 
+    async def start_monitoring(self) -> None:
+        """
+        Start the health monitoring loop.
+
+        This spawns a background task that periodically checks agent health
+        and restarts crashed agents if auto_restart is enabled.
+        """
+        if self._running:
+            logger.warning("Monitoring already running")
+            return
+
+        logger.info("Starting health monitoring loop")
+        self._running = True
+        self._monitor_task = asyncio.create_task(self._monitor_loop())
+
+    async def stop_monitoring(self) -> None:
+        """Stop the health monitoring loop."""
+        if not self._running:
+            return
+
+        logger.info("Stopping health monitoring loop")
+        self._running = False
+
+        if self._monitor_task:
+            self._monitor_task.cancel()
+            try:
+                await self._monitor_task
+            except asyncio.CancelledError:
+                pass
+            self._monitor_task = None
+
+        logger.info("Health monitoring stopped")
+
     def get_agent_ids_by_role(self, role: AgentRole) -> List[str]:
         """Get all agent IDs with a specific role."""
         return self._role_to_agents.get(role, [])

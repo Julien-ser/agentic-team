@@ -448,3 +448,255 @@ drwxr-xr-x 2 julien julien 4096 Mar 13 19:17 __pycache__
 [0m→ [0mRead src/orchestrator/main.py
 [0m→ [0mRead src/orchestrator/test_worker.py
 📝 Log saved: logs/iteration-27.md
+📊 Token Usage: 8000 / Session: 28250 / 64000
+Unstaged changes after reset:
+M	logs/worker-session-20260313-191244.log
+✅ Changes committed
+To github.com:Julien-ser/agentic-team.git
+   766e102..0e73558  main -> main
+✅ Pushed to GitHub
+📊 Updated Tasks: 11/20 completed, 9 remaining
+   Next task: **Task 3.4**: Build agent worker orchestration with health m...
+📍 Iteration 28 at Fri Mar 13 07:18:35 PM EDT 2026...
+✓ Progress: Git commit found
+📊 Task attempt 3: Progress detected, continuing...
+📚 Loading context from previous iteration attempts...
+🤖 OpenCode processing: **Task 3.4**: Build agent worker orchestration with health monitoring
+[0m
+> build · stepfun/step-3.5-flash:free
+[0m
+I'll start by exploring the current project structure to understand what needs to be built for Task 3.4.
+[0m✱ [0mGlob "**/*.py"[90m 27 matches[0m
+[0m→ [0mRead TASKS.md
+Let me check the existing worker_manager and main files to understand the current state:
+[0m→ [0mRead src/orchestrator/worker_manager.py
+[0m→ [0mRead src/orchestrator/main.py
+[0m→ [0mRead src/agents/base_agent.py
+[0m→ [0mRead src/agents/lifecycle.py
+Now let me check the lifecycle manager to understand health monitoring:
+[0m→ [0mRead src/orchestrator/test_worker.py
+Let me check the test file to understand expected behavior:
+[0m
+[0m# [0mTodos
+[ ] Add start_monitoring() method to LifecycleManager
+[ ] Update WorkerManager.start() to start monitoring
+[ ] Update WorkerManager.stop() to properly stop monitoring
+[ ] Create systemd service file
+[ ] Test WorkerManager with test_worker.py
+[ ] Update TASKS.md to mark Task 3.4 complete
+[ ] Update README.md with worker manager info
+[0m
+Good! The core files already exist. I can see that `WorkerManager` and `LifecycleManager` are already implemented. However, I notice a critical issue: the `LifecycleManager`'s monitoring loop is only started when using it as a context manager (`__aenter__`), but `WorkerManager.start()` calls `start_all()` without starting the monitor loop. This needs to be fixed.
+
+Let me create a todo list and then fix the issues:
+[0m# [0mTodos
+[ ] Add start_monitoring() method to LifecycleManager
+[ ] Update WorkerManager.start() to start monitoring
+[ ] Update WorkerManager.stop() to properly stop monitoring
+[ ] Create systemd service file
+[ ] Test WorkerManager with test_worker.py
+[ ] Update TASKS.md to mark Task 3.4 complete
+[ ] Update README.md with worker manager info
+[0m
+Now I'll implement the fixes. First, add `start_monitoring()` and `stop_monitoring()` methods to LifecycleManager:
+[0m← [0mEdit src/agents/lifecycle.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/lifecycle.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/lifecycle.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/lifecycle.py
+@@ -328,8 +328,41 @@
+             results[agent_id] = False
+ 
+     return results
+ 
++async def start_monitoring(self) -> None:
++    """
++    Start the health monitoring loop.
++
++    This spawns a background task that periodically checks agent health
++    and restarts crashed agents if auto_restart is enabled.
++    """
++    if self._running:
++        logger.warning("Monitoring already running")
++        return
++
++    logger.info("Starting health monitoring loop")
++    self._running = True
++    self._monitor_task = asyncio.create_task(self._monitor_loop())
++
++async def stop_monitoring(self) -> None:
++    """Stop the health monitoring loop."""
++    if not self._running:
++        return
++
++    logger.info("Stopping health monitoring loop")
++    self._running = False
++
++    if self._monitor_task:
++        self._monitor_task.cancel()
++        try:
++            await self._monitor_task
++        except asyncio.CancelledError:
++            pass
++        self._monitor_task = None
++
++    logger.info("Health monitoring stopped")
++
+ def get_agent_ids_by_role(self, role: AgentRole) -> List[str]:
+     """Get all agent IDs with a specific role."""
+     return self._role_to_agents.get(role, [])
+ 
+
+[0m
+[0m# [0mTodos
+[x] Add start_monitoring() method to LifecycleManager
+[ ] Update WorkerManager.start() to start monitoring
+[ ] Update WorkerManager.stop() to properly stop monitoring
+[ ] Create systemd service file
+[ ] Test WorkerManager with test_worker.py
+[ ] Update TASKS.md to mark Task 3.4 complete
+[ ] Update README.md with worker manager info
+[0m
+Now update WorkerManager.start() to start monitoring:
+[0m← [0mEdit src/orchestrator/worker_manager.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py
+@@ -115,8 +115,11 @@
+ 
+ # Start all agents via lifecycle manager
+ results = await self.lifecycle_manager.start_all()
+ 
++# Start health monitoring
++await self.lifecycle_manager.start_monitoring()
++
+ # Log results
+ successful = sum(1 for v in results.values() if v)
+ total = len(results)
+ logger.info(f"Started {successful}/{total} agents")
+
+[0m
+[0m# [0mTodos
+[x] Add start_monitoring() method to LifecycleManager
+[x] Update WorkerManager.start() to start monitoring
+[ ] Update WorkerManager.stop() to properly stop monitoring
+[ ] Create systemd service file
+[ ] Test WorkerManager with test_worker.py
+[ ] Update TASKS.md to mark Task 3.4 complete
+[ ] Update README.md with worker manager info
+[0m
+Now update WorkerManager.stop() to stop monitoring:
+[0m← [0mEdit src/orchestrator/worker_manager.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py
+@@ -135,8 +135,12 @@
+ # Stop lifecycle manager (stops all agents)
+ if self.lifecycle_manager:
+     await self.lifecycle_manager.stop_all(graceful=True)
+ 
++# Stop monitoring
++if self.lifecycle_manager:
++    await self.lifecycle_manager.stop_monitoring()
++
+ # Disconnect broker
+ try:
+     await self.broker.disconnect()
+     logger.info("Disconnected from Redis")
+
+[0m
+[0m# [0mTodos
+[x] Add start_monitoring() method to LifecycleManager
+[x] Update WorkerManager.start() to start monitoring
+[x] Update WorkerManager.stop() to properly stop monitoring
+[ ] Create systemd service file
+[ ] Test WorkerManager with test_worker.py
+[ ] Update TASKS.md to mark Task 3.4 complete
+[ ] Update README.md with worker manager info
+[0m
+Now let's create the systemd service file:
+[0m✗ [0mwrite failed
+[91m[1mError: [0mYou must read file /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/etc/wiggum-agentic-team.service before overwriting it. Use the Read tool first
+Let me check if the etc directory exists:
+[0m
+[0m$ [0mls -la /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/etc 2>&1 || echo "Directory does not exist"
+total 12
+drwxr-xr-x  2 julien julien 4096 Mar 13 19:16 .
+drwxr-xr-x 10 julien julien 4096 Mar 13 19:16 ..
+-rw-r--r--  1 julien julien  520 Mar 13 19:16 wiggum-agentic-team.service
+[0m
+[0m→ [0mRead etc/wiggum-agentic-team.service
+The file already exists! Let me read it:
+[0m
+[0m← [0mEdit etc/wiggum-agentic-team.service
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/etc/wiggum-agentic-team.service
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/etc/wiggum-agentic-team.service
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/etc/wiggum-agentic-team.service
+@@ -1,15 +1,17 @@
+ [Unit]
+ Description=Agentic Team Worker Manager
+ After=network.target redis.service
++Wants=redis.service
+ 
+ [Service]
+ Type=simple
+-User=YOUR_USER
++User=ubuntu
+ WorkingDirectory=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team
+-Environment="PATH=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/venv/bin"
+-ExecStart=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/venv/bin/python -m orchestrator.main
+-Restart=on-failure
++Environment="PATH=/usr/bin:/usr/local/bin"
++Environment="PYTHONPATH=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src"
++ExecStart=/usr/bin/python3 -m orchestrator.main
++Restart=always
+ RestartSec=10
+ StandardOutput=journal
+ StandardError=journal
+ 
+
+[0m
+The file exists but uses a venv. According to project instructions, we should not use virtual environments. Let's update it to use system Python:
+[0m# [0mTodos
+[x] Add start_monitoring() method to LifecycleManager
+[x] Update WorkerManager.start() to start monitoring
+[x] Update WorkerManager.stop() to properly stop monitoring
+[x] Create systemd service file
+[ ] Test WorkerManager with test_worker.py
+[ ] Update TASKS.md to mark Task 3.4 complete
+[ ] Update README.md with worker manager info
+[0m
+Now let's test the WorkerManager:
+[0m$ [0mpython3 -m orchestrator.test_worker
+/home/julien/Desktop/Free-Wiggum-opencode/venv/bin/python3: Error while finding module specification for 'orchestrator.test_worker' (ModuleNotFoundError: No module named 'orchestrator')
+[0m
+The test is picking up the venv Python. Let's run it directly from the project:
+[0m$ [0mcd /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team && PYTHONPATH=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src python3 src/orchestrator/test_worker.py
+Traceback (most recent call last):
+  File "/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/test_worker.py", line 16, in <module>
+    from orchestrator.worker_manager import WorkerManager
+  File "/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py", line 13, in <module>
+    from src.agents.security_agent import SecurityAgent
+ModuleNotFoundError: No module named 'src'
+[0m
+The project imports use "src." prefix, needing the project root in PYTHONPATH. Let's run correctly:
+[0m$ [0mcd /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team && PYTHONPATH=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team python3 -m orchestrator.test_worker
+/home/julien/Desktop/Free-Wiggum-opencode/venv/bin/python3: Error while finding module specification for 'orchestrator.test_worker' (ModuleNotFoundError: No module named 'orchestrator')
+[0m
+It's defaulting to venv Python. Let's use full path to system Python:
+[0m$ [0mcd /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team && /usr/bin/python3 -m orchestrator.test_worker
+/usr/bin/python3: Error while finding module specification for 'orchestrator.test_worker' (ModuleNotFoundError: No module named 'orchestrator')
+[0m
+Let's try a different approach - directly run the test file with Python:
+[0m$ [0mcd /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team && PYTHONPATH=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src /usr/bin/python3 src/orchestrator/test_worker.py
+Traceback (most recent call last):
+  File "/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/test_worker.py", line 16, in <module>
+    from orchestrator.worker_manager import WorkerManager
+  File "/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/orchestrator/worker_manager.py", line 13, in <module>
+    from src.agents.security_agent import SecurityAgent
+ModuleNotFoundError: No module named 'src'
+[0m
+📝 Log saved: logs/iteration-28.md

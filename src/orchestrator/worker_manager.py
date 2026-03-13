@@ -116,6 +116,9 @@ class WorkerManager:
         # Start all agents via lifecycle manager
         results = await self.lifecycle_manager.start_all()
 
+        # Start health monitoring
+        await self.lifecycle_manager.start_monitoring()
+
         # Log results
         successful = sum(1 for v in results.values() if v)
         total = len(results)
@@ -132,6 +135,10 @@ class WorkerManager:
         # Stop lifecycle manager (stops all agents)
         if self.lifecycle_manager:
             await self.lifecycle_manager.stop_all(graceful=True)
+
+        # Stop monitoring
+        if self.lifecycle_manager:
+            await self.lifecycle_manager.stop_monitoring()
 
         # Disconnect broker
         try:
