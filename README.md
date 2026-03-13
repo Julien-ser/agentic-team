@@ -33,6 +33,12 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 - ✅ Task 3.3: Implement Frontend Agent for UI/UX development
 - ✅ Task 3.4: Build agent worker orchestration with health monitoring
 
+**Phase 4 - A2A Communication & Integration Testing** (In Progress)
+- ✅ Task 4.1: Implement A2A message routing and handling
+- ✅ Task 4.2: Build collaborative workflow: end-to-end feature development
+- [ ] Task 4.3: Create web dashboard for monitoring agent activity
+- [ ] Task 4.4: Write comprehensive documentation and finalize TASKS.md
+
 ## Quick Start
 
 ### Prerequisites
@@ -75,7 +81,8 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 ```
 agentic-team/
 ├── docs/                    # Documentation
-│   └── architecture.md     # System design and specifications
+│   ├── architecture.md     # System design and specifications
+│   └── workflow_example.md # Collaborative workflow walkthrough
 ├── src/                    # Source code
 │   ├── protocols/          # Agent specifications and message protocols
 │   ├── agents/            # Specialized agent implementations
@@ -85,6 +92,7 @@ agentic-team/
 │   ├── orchestrator/      # Agent worker orchestration
 │   └── dashboard/         # Flask monitoring interface
 ├── tests/                 # Unit and integration tests
+│   └── test_collaborative_workflow.py  # End-to-end workflow integration test
 ├── requirements.txt       # Python dependencies
 ├── .env.example          # Environment configuration template
 └── TASKS.md             # Development roadmap

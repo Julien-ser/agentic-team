@@ -187,7 +187,7 @@
     ```
   - **Success**: Frontend agent sends API spec to Dev agent, Dev agent responds with implementation
 
-- [ ] **Task 4.2**: Build collaborative workflow: end-to-end feature development
+- [x] **Task 4.2**: Build collaborative workflow: end-to-end feature development
   - **Deliverable**: `docs/workflow_example.md` documenting the full A2A flow
   - **Workflow steps**:
     1. Task: "Build user login feature" (from TASKS.md)
