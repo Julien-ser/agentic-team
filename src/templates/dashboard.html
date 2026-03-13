@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Team Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .agent-card {
+            transition: transform 0.2s;
+            border-left: 4px solid;
+        }
+        .agent-card:hover {
+            transform: translateY(-2px);
+        }
+        .agent-security { border-left-color: #fce4ec; }
+        .agent-dev { border-left-color: #e8f5e8; }
+        .agent-frontend { border-left-color: #fff3e0; }
+        .status-online { color: #28a745; }
+        .status-offline { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+        .message-flow {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .live-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .mermaid {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                🤖 Agentic Team Dashboard
+                <span class="badge bg-success live-indicator ms-2">LIVE</span>
+            </span>
+            <span class="navbar-text" id="last-update">
+                Last updated: --:--:--
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <!-- System Architecture Diagram -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">📊 System Architecture</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mermaid">
+                            graph TB
+                                subgraph "Wiggum Master"
+                                    M[Master Loop] --> D[Task Dispatcher]
+                                end
+                                
+                                subgraph "Agentic Team System"
+                                    D --> SA[Security Agent]
+                                    D --> DVA[Dev Agent]
+                                    D --> FA[Frontend Agent]
+                                    
+                                    SA -->|Messages| RB[Redis Broker]
+                                    DVA --> RB
+                                    FA --> RB
+                                    
+                                    RB --> SA
+                                    RB --> DVA
+                                    RB --> FA
+                                    
+                                    SA --> SM[State Manager<br/>SQLite]
+                                    DVA --> SM
+                                    FA --> SM
+                                end
+                                
+                                subgraph "Monitoring & Control"
+                                    DASH[Dashboard<br/>Flask] --> SM
+                                    DASH --> RB
+                                end
+                                
+                                style M fill:#e1f5fe
+                                style SA fill:#fce4ec
+                                style DVA fill:#e8f5e8
+                                style FA fill:#fff3e0
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Tasks Completed</h6>
+                            <h2 id="metric-tasks-completed">0</h2>
+                        </div>
+                        <div class="fs-1 opacity-50">✅</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card p-3" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Messages Sent</h6>
+                            <h2 id="metric-messages">0</h2>
+                        </div>
+                        <div class="fs-1 opacity-50">💬</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card p-3" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Active Agents</h6>
+                            <h2 id="metric-active-agents">0/0</h2>
+                        </div>
+                        <div class="fs-1 opacity-50">🟢</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card p-3" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Msg/sec</h6>
+                            <h2 id="metric-msg-rate">0.0</h2>
+                        </div>
+                        <div class="fs-1 opacity-50">📊</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agents and Tasks Row -->
+        <div class="row mb-4">
+            <!-- Agent Status Cards -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">🖥️ Agent Status</h5>
+                    </div>
+                    <div class="card-body" id="agent-cards">
+                        <div class="text-center text-muted">Loading agents...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Queues -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">📋 Task Queues</h5>
+                    </div>
+                    <div class="card-body" id="task-queues">
+                        <div class="text-center text-muted">Loading tasks...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages and Chart Row -->
+        <div class="row mb-4">
+            <!-- Recent Messages -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">💬 Recent A2A Messages</h5>
+                    </div>
+                    <div class="card-body message-flow" id="message-feed">
+                        <div class="text-center text-muted">Loading messages...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Chart -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">📈 System Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Knowledge -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">🗃️ Shared Knowledge Base</h5>
+                    </div>
+                    <div class="card-body" id="shared-knowledge">
+                        <div class="text-center text-muted">Loading shared knowledge...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-3 mt-4 border-top">
+        <small class="text-muted">
+            Agentic Team Monitoring Dashboard | 
+            Powered by Flask + Redis + SQLite
+        </small>
+    </footer>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+        // Chart.js setup
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Messages/sec',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }, {
+                    label: 'Tasks/min',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // State tracking
+        let lastMessageCount = 0;
+        let lastUpdateTime = Date.now();
+
+        // Fetch all dashboard data
+        async function fetchDashboardData() {
+            try {
+                const [agentsRes, tasksRes, messagesRes, metricsRes, knowledgeRes] = await Promise.all([
+                    fetch('/api/agents'),
+                    fetch('/api/tasks'),
+                    fetch('/api/messages?limit=20'),
+                    fetch('/api/metrics'),
+                    fetch('/api/shared-knowledge')
+                ]);
+
+                const agents = await agentsRes.json();
+                const tasks = await tasksRes.json();
+                const messages = await messagesRes.json();
+                const metrics = await metricsRes.json();
+                const knowledge = await knowledgeRes.json();
+
+                updateAgentCards(agents);
+                updateTaskQueues(tasks);
+                updateMessageFeed(messages);
+                updateMetrics(metrics);
+                updateSharedKnowledge(knowledge);
+                updateChart(metrics);
+                
+                document.getElementById('last-update').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString()}`;
+                
+                lastUpdateTime = Date.now();
+            } catch (error) {
+                console.error('Failed to fetch dashboard data:', error);
+            }
+        }
+
+        // Update agent status cards
+        function updateAgentCards(agents) {
+            const container = document.getElementById('agent-cards');
+            
+            if (!agents || agents.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No agents registered</div>';
+                return;
+            }
+
+            container.innerHTML = agents.map(agent => `
+                <div class="card agent-card mb-3 agent-${agent.role.split('_')[0] || 'unknown'}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title mb-1">${agent.role.replace('_', ' ').toUpperCase()}</h6>
+                                <small class="text-muted">ID: ${agent.agent_id.substring(0, 12)}...</small>
+                            </div>
+                            <span class="badge ${agent.is_healthy ? 'bg-success' : 'bg-danger'}">
+                                ${agent.is_healthy ? 'ONLINE' : 'OFFLINE'}
+                            </span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <strong>${agent.total_tasks || 0}</strong><br>
+                                <small>Total</small>
+                            </div>
+                            <div class="col-4">
+                                <strong>${agent.task_counts?.completed || 0}</strong><br>
+                                <small>Done</small>
+                            </div>
+                            <div class="col-4">
+                                <strong>${Math.round(agent.heartbeat_age_seconds || 0)}s</strong><br>
+                                <small>Since HB</small>
+                            </div>
+                        </div>
+                        ${agent.current_task_id ? 
+                            `<div class="mt-2"><small class="text-primary">⏳ Working on task ${agent.current_task_id.substring(0, 8)}...</small></div>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update task queues
+        function updateTaskQueues(tasks) {
+            const container = document.getElementById('task-queues');
+            
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No pending tasks</div>';
+                return;
+            }
+
+            // Group by role
+            const grouped = {};
+            tasks.forEach(task => {
+                if (!grouped[task.role]) grouped[task.role] = [];
+                grouped[task.role].push(task);
+            });
+
+            container.innerHTML = Object.entries(grouped).map(([role, roleTasks]) => `
+                <div class="mb-3">
+                    <h6>${role.replace('_', ' ').toUpperCase()} (${roleTasks.length})</h6>
+                    <div class="list-group list-group-flush" style="max-height: 200px; overflow-y: auto;">
+                        ${roleTasks.slice(0, 5).map(task => `
+                            <div class="list-group-item list-group-item-action p-2">
+                                <small class="d-block text-muted">ID: ${task.id.substring(0, 8)}...</small>
+                                <div>${task.description.substring(0, 60)}...</div>
+                                <span class="badge bg-${task.status === 'pending' ? 'warning' : task.status === 'assigned' ? 'info' : 'success'} bg-subtle">
+                                    ${task.status}
+                                </span>
+                            </div>
+                        `).join('')}
+                        ${roleTasks.length > 5 ? 
+                            `<div class="list-group-item text-center text-muted">+${roleTasks.length - 5} more</div>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update message feed
+        function updateMessageFeed(messages) {
+            const container = document.getElementById('message-feed');
+            
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No messages yet</div>';
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => `
+                <div class="card mb-2">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-primary">${msg.sender} → ${msg.recipient}</small>
+                            <small class="text-muted">${new Date(msg.timestamp).toLocaleTimeString()}</small>
+                        </div>
+                        <small class="text-muted">${msg.message_type}</small>
+                        <div class="mt-1">${JSON.stringify(msg.content).substring(0, 100)}${JSON.stringify(msg.content).length > 100 ? '...' : ''}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update metrics display
+        function updateMetrics(metrics) {
+            if (!metrics) return;
+
+            document.getElementById('metric-tasks-completed').textContent = 
+                metrics.tasks?.total_completed || 0;
+            document.getElementById('metric-messages').textContent = 
+                metrics.messages?.total_sent || 0;
+            document.getElementById('metric-active-agents').textContent = 
+                `${metrics.agents?.active || 0}/${metrics.agents?.total || 0}`;
+            document.getElementById('metric-msg-rate').textContent = 
+                metrics.messages?.rate_per_second?.toFixed(1) || 0;
+        }
+
+        // Update shared knowledge
+        function updateSharedKnowledge(knowledge) {
+            const container = document.getElementById('shared-knowledge');
+            
+            if (!knowledge || knowledge.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No shared knowledge entries</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Key</th>
+                                <th>Value</th>
+                                <th>Source Agent</th>
+                                <th>Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${knowledge.map(entry => `
+                                <tr>
+                                    <td><code>${entry.key}</code></td>
+                                    <td>${String(entry.value).substring(0, 50)}${String(entry.value).length > 50 ? '...' : ''}</td>
+                                    <td>${entry.source_agent}</td>
+                                    <td>${new Date(entry.updated_at).toLocaleTimeString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Update performance chart
+        function updateChart(metrics) {
+            if (!metrics) return;
+
+            const now = new Date().toLocaleTimeString();
+            performanceChart.data.labels.push(now);
+            performanceChart.data.datasets[0].data.push(metrics.messages?.rate_per_second || 0);
+            performanceChart.data.datasets[1].data.push(metrics.tasks?.completion_rate_per_minute || 0);
+
+            // Keep only last 20 data points
+            if (performanceChart.data.labels.length > 20) {
+                performanceChart.data.labels.shift();
+                performanceChart.data.datasets[0].data.shift();
+                performanceChart.data.datasets[1].data.shift();
+            }
+
+            performanceChart.update('none');
+        }
+
+        // SSE for real-time updates
+        function setupSSE() {
+            const eventSource = new EventSource('/api/events');
+            
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('SSE update:', data);
+                fetchDashboardData(); // Full refresh on any SSE event
+            };
+
+            eventSource.onerror = (error) => {
+                console.error('SSE error:', error);
+                eventSource.close();
+                // Fallback to polling
+                setInterval(fetchDashboardData, 5000);
+            };
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchDashboardData();
+            setupSSE();
+            
+            // Also poll every 5 seconds as backup
+            setInterval(fetchDashboardData, 5000);
+        });
+    </script>
+</body>
+</html>

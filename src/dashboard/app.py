@@ -42,33 +42,47 @@ def get_agents():
     """
     try:
         agent_states = state_manager.get_all_agent_states()
-        conn = state_manager._get_connection()
-        cursor = conn.cursor()
+
+        # Get all tasks for filtering
+        all_tasks = []
+        with state_manager._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM tasks")
+            all_tasks = [dict(row) for row in cursor.fetchall()]
 
         # Enrich with task counts
         for agent in agent_states:
             # Get task count by status for this agent
-            cursor.execute(
-                """
-                SELECT status, COUNT(*) as count
-                FROM tasks
-                WHERE assigned_to = ?
-                GROUP BY status
-                """,
-                (agent["agent_id"],),
-            )
-            task_counts = {row["status"]: row["count"] for row in cursor.fetchall()}
+            agent_tasks = [
+                t for t in all_tasks if t.get("assigned_to") == agent["agent_id"]
+            ]
+
+            task_counts = {}
+            for task in agent_tasks:
+                status = task["status"]
+                task_counts[status] = task_counts.get(status, 0) + 1
 
             agent["task_counts"] = task_counts
             agent["total_tasks"] = sum(task_counts.values())
 
             # Calculate health based on heartbeat
-            last_heartbeat = datetime.fromisoformat(agent["last_heartbeat"])
-            age_seconds = (datetime.now(timezone.utc) - last_heartbeat).total_seconds()
+            last_heartbeat_str = agent["last_heartbeat"]
+            if last_heartbeat_str:
+                try:
+                    last_heartbeat = datetime.fromisoformat(
+                        last_heartbeat_str.replace("Z", "+00:00")
+                    )
+                    age_seconds = (
+                        datetime.now(timezone.utc) - last_heartbeat
+                    ).total_seconds()
+                except (ValueError, TypeError):
+                    age_seconds = 9999
+            else:
+                age_seconds = 9999
+
             agent["heartbeat_age_seconds"] = age_seconds
             agent["is_healthy"] = age_seconds < (config.AGENT_HEARTBEAT_INTERVAL * 3)
 
-        conn.close()
         return jsonify(agent_states)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -292,7 +306,8 @@ def health_check():
     """Simple health check endpoint."""
     try:
         # Test database connection
-        state_manager._get_connection().close()
+        with state_manager._get_connection() as conn:
+            pass  # Just test that we can get a connection
         return jsonify(
             {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
         )
@@ -321,14 +336,17 @@ def events():
                 time.sleep(2)
 
                 # Get current metrics
-                cursor = state_manager._get_connection().cursor()
-                cursor.execute("SELECT COUNT(*) as count FROM messages")
-                msg_count = cursor.fetchone()["count"]
+                with state_manager._get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) as count FROM messages")
+                    result = cursor.fetchone()
+                    msg_count = result["count"] if result else 0
 
-                cursor.execute(
-                    "SELECT COUNT(*) as count FROM agent_states WHERE health_status = 'healthy'"
-                )
-                healthy_agents = cursor.fetchone()["count"]
+                    cursor.execute(
+                        "SELECT COUNT(*) as count FROM agent_states WHERE health_status = 'healthy'"
+                    )
+                    result = cursor.fetchone()
+                    healthy_agents = result["count"] if result else 0
 
                 event_data = {
                     "messages_total": msg_count,
