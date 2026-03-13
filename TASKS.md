@@ -49,7 +49,7 @@
     - Helper functions for channel naming and validation
   - **Success**: All agent specs defined with clear input/output contracts
 
-- [ ] **Task 1.3**: Create database schema for shared state
+- [x] **Task 1.3**: Create database schema for shared state
   - **Deliverable**: `src/state/schema.py` and migration script `src/state/migrate.py`
   - **Tables to create**:
     - `tasks` (id, description, role, status, created_at, assigned_to, completed_at)
