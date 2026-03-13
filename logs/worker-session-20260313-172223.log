@@ -1379,3 +1379,158 @@ All checks passed!
 [0m
 📝 Log saved: logs/iteration-19.md
 📊 Token Usage: 32250 / Session: 32250 / 64000
+✅ Changes committed
+To github.com:Julien-ser/agentic-team.git
+   2b70136..03ec6c6  main -> main
+✅ Pushed to GitHub
+📊 Updated Tasks: 10/20 completed, 10 remaining
+   Next task: **Task 3.3**: Implement Frontend Agent for UI/UX development...
+📍 Iteration 20 at Fri Mar 13 05:28:05 PM EDT 2026...
+🤖 OpenCode processing: **Task 3.3**: Implement Frontend Agent for UI/UX development
+[0m
+> build · stepfun/step-3.5-flash:free
+[0m
+I'll start by exploring the project structure to understand the existing codebase and then implement the Frontend Agent.
+[0m✱ [0mGlob "src/**/*.py"[90m 15 matches[0m
+[0m→ [0mRead src/agents/base_agent.py
+[0m→ [0mRead src/agents/security_agent.py
+[0m→ [0mRead src/agents/dev_agent.py
+[0m→ [0mRead src/protocols/agent_specs.py
+[0m→ [0mRead src/config.py
+[0m→ [0mRead src/state/state_manager.py
+[0m→ [0mRead README.md
+[0m→ [0mRead TASKS.md
+[0m✱ [0mGlob "tests/*.py"[90m 7 matches[0m
+[0m→ [0mRead tests/test_security_agent.py
+[0m→ [0mRead tests/test_dev_agent.py
+Now I have a complete understanding of the codebase structure, patterns, and requirements. Let me create the Frontend Agent implementation. I'll start by creating the agent file, then the tests, and finally update TASKS.md and README.md.
+
+Let me create the Frontend Agent:
+[0m
+[0m← [0mWrite src/agents/frontend_agent.py
+Wrote file successfully.
+
+LSP errors detected in other files:
+<diagnostics file="/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/base_agent.py">
+ERROR [154:55] Argument of type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" cannot be assigned to parameter "callback" of type "(Dict[str, Any]) -> None" in function "subscribe"
+  Type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" is not assignable to type "(Dict[str, Any]) -> None"
+    Function return type "CoroutineType[Any, Any, None]" is incompatible with type "None"
+      "CoroutineType[Any, Any, None]" is not assignable to "None"
+ERROR [159:36] Argument of type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" cannot be assigned to parameter "callback" of type "(Dict[str, Any]) -> None" in function "subscribe"
+  Type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" is not assignable to type "(Dict[str, Any]) -> None"
+    Function return type "CoroutineType[Any, Any, None]" is incompatible with type "None"
+      "CoroutineType[Any, Any, None]" is not assignable to "None"
+ERROR [195:55] Argument of type "Task" cannot be assigned to parameter "arg" of type "_FutureLike[_T@shield]" in function "shield"
+  Type "Task" is not assignable to type "_FutureLike[_T@shield]"
+    "Task" is incompatible with protocol "Awaitable[_T@shield]"
+      "__await__" is not present
+    "Task" is not assignable to "Future[_T@shield]"
+ERROR [415:32] Object of type "None" is not subscriptable
+</diagnostics>
+[0m
+Now let me create the test file for the frontend agent:
+[0m← [0mWrite tests/test_frontend_agent.py
+Wrote file successfully.
+
+LSP errors detected in other files:
+<diagnostics file="/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/base_agent.py">
+ERROR [154:55] Argument of type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" cannot be assigned to parameter "callback" of type "(Dict[str, Any]) -> None" in function "subscribe"
+  Type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" is not assignable to type "(Dict[str, Any]) -> None"
+    Function return type "CoroutineType[Any, Any, None]" is incompatible with type "None"
+      "CoroutineType[Any, Any, None]" is not assignable to "None"
+ERROR [159:36] Argument of type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" cannot be assigned to parameter "callback" of type "(Dict[str, Any]) -> None" in function "subscribe"
+  Type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" is not assignable to type "(Dict[str, Any]) -> None"
+    Function return type "CoroutineType[Any, Any, None]" is incompatible with type "None"
+      "CoroutineType[Any, Any, None]" is not assignable to "None"
+ERROR [195:55] Argument of type "Task" cannot be assigned to parameter "arg" of type "_FutureLike[_T@shield]" in function "shield"
+  Type "Task" is not assignable to type "_FutureLike[_T@shield]"
+    "Task" is incompatible with protocol "Awaitable[_T@shield]"
+      "__await__" is not present
+    "Task" is not assignable to "Future[_T@shield]"
+ERROR [415:32] Object of type "None" is not subscriptable
+</diagnostics>
+
+LSP errors detected in other files:
+<diagnostics file="/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py">
+ERROR [20:5] "ComponentSpec" is unknown import symbol
+ERROR [821:18] Cannot access attribute "set_shared_knowledge" for class "FrontendAgent*"
+  Attribute "set_shared_knowledge" is unknown
+ERROR [824:18] Cannot access attribute "set_shared_knowledge" for class "FrontendAgent*"
+  Attribute "set_shared_knowledge" is unknown
+ERROR [953:18] Cannot access attribute "set_shared_knowledge" for class "FrontendAgent*"
+  Attribute "set_shared_knowledge" is unknown
+ERROR [155:42] Cannot access attribute "_generate_style_guide" for class "FrontendAgent*"
+  Attribute "_generate_style_guide" is unknown
+ERROR [224:42] Cannot access attribute "get_shared_knowledge" for class "FrontendAgent*"
+  Attribute "get_shared_knowledge" is unknown
+ERROR [781:36] "subprocess" is possibly unbound
+ERROR [1106:20] "aiohttp" is not defined
+ERROR [1111:25] "aiohttp" is not defined
+</diagnostics>
+[0m
+[0m→ [0mRead src/core/wiggum_loop.py
+Let me fix the issues in the frontend agent:
+I need to fix the frontend agent to address LSP errors. Let me make the necessary corrections:
+[0m
+[0m← [0mEdit src/agents/frontend_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py
+@@ -5,20 +5,23 @@
+ accessibility (WCAG), and integrates with backend APIs using Tailwind CSS.
+ """
+ 
+ import asyncio
++import json
+ import logging
+ import re
++import subprocess
+ from pathlib import Path
+ from typing import Dict, List, Any, Optional
+ 
++import aiohttp
++
+ from src.agents.base_agent import BaseAgent
+ from src.protocols.agent_specs import (
+     AgentRole,
+     MessageType,
+     Task,
+     ApiSpec,
+-    ComponentSpec,
+ )
+ from src.config import config
+ 
+ 
+
+[0m
+[0m✱ [0mGrep "ComponentSpec"[90m in src/agents/frontend_agent.py · 0 matches[0m
+Let me search for any remaining references to ComponentSpec and also fix the method definitions:
+[0m→ [0mRead src/agents/frontend_agent.py[90m [limit=30][0m
+[0m✱ [0mGrep "set_shared_knowledge|get_shared_knowledge"[90m in src/agents/frontend_agent.py · 4 matches[0m
+[0m✗ [0medit failed
+[91m[1mError: [0mNo changes to apply: oldString and newString are identical.
+Now I'll add the __init__ method and shared knowledge methods to the FrontendAgent class. I'll place them at the beginning of the class after the docstring:
+Let me add the __init__ method and shared knowledge methods. First, I'll add __init__ right after the class docstring:
+[0m
+[0m← [0mEdit src/agents/frontend_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/frontend_agent.py
+@@ -42,8 +42,12 @@
+ - Process CODE_REVIEW_REQUEST for frontend code
+ - Send COMPONENT_READY when components are complete
+ """
+ 
++def __init__(self, agent_id=None, broker=None):
++    super().__init__(agent_id, broker)
++    self._shared_knowledge = {}
++
+ # Accessibility patterns to check/enforce
+ ACCESSIBILITY_PATTERNS = {
+     "alt_text": {
+         "pattern": r'<img[^>]*\s+alt=["\'][^"\']*["\']',
+
+[0m
+📝 Log saved: logs/iteration-20.md
