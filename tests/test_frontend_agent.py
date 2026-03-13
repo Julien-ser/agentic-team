@@ -18,7 +18,6 @@ from src.protocols.agent_specs import (
     MessageType,
     Task,
     ApiSpec,
-    ComponentSpec,
 )
 from src.config import config
 
@@ -45,62 +44,87 @@ def mock_broker():
     return broker
 
 
-@pytest.fixture
-def mock_openrouter():
-    """Mock OpenRouter API calls."""
-    with patch.object(FrontendAgent, "_call_openrouter") as mock:
+    @pytest.fixture
+    def mock_openrouter():
+        """Mock OpenRouter API calls."""
+        with patch.object(FrontendAgent, "_call_openrouter") as mock:
 
-        async def mock_call(prompt):
-            # Return sample code based on prompt content
-            if "Create a modern, production-ready frontend component" in prompt:
-                return """<!DOCTYPE html>
+            async def mock_call(prompt):
+                # Extract component name from prompt if present
+                import re
+                component_name_match = re.search(r"named '([^']+)'", prompt)
+                component_name = component_name_match.group(1) if component_name_match else "Component"
+
+                # Return sample code based on prompt content
+                if "Create a modern, production-ready frontend component" in prompt:
+                    # Return component with name and API fetch integration
+                    template = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TestComponent</title>
+    <title>{component_name}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen p-4">
     <main class="max-w-4xl mx-auto">
         <div class="bg-white rounded-lg shadow p-6 mt-8">
-            <h1 class="text-2xl font-bold text-gray-900 mb-4">Test Component</h1>
-            <form id="testForm">
-                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    name="email"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    aria-label="Email address"
-                    required
-                >
-                <button 
-                    type="submit"
-                    class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                    aria-label="Submit form"
-                >
-                    Submit
-                </button>
-            </form>
-            <div id="result" class="mt-4" role="status" aria-live="polite"></div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-4">{component_name}</h1>
+            <div id="loading" class="hidden">Loading...</div>
+            <div id="error" class="bg-red-100 p-3 rounded hidden"></div>
+            <ul id="dataList" class="space-y-2"></ul>
         </div>
     </main>
     <script>
-        document.getElementById('testForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const resultDiv = document.getElementById('result');
-            resultDiv.textContent = 'Loading...';
-            try {
-                // TODO: Add API integration
-                resultDiv.textContent = 'Submitted!';
-            } catch (error) {
-                resultDiv.textContent = 'Error: ' + error.message;
-            }
-        });
+        async function loadData() {{
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const list = document.getElementById('dataList');
+
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+            list.innerHTML = '';
+
+            try {{
+                const token = localStorage.getItem('jwt_token');
+                const response = await fetch('/api/v1/data', {{
+                    method: 'GET',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? 'Bearer ' + token : ''
+                    }}
+                }});
+
+                if (!response.ok) {{
+                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                }}
+
+                const data = await response.json();
+                const items = Array.isArray(data) ? data : data.items || [];
+
+                items.forEach(item => {{
+                    const li = document.createElement('li');
+                    li.className = 'p-3 border rounded';
+                    li.textContent = item.name || item.title || JSON.stringify(item);
+                    list.appendChild(li);
+                }});
+
+                if (items.length === 0) {{
+                    list.innerHTML = '<li class="p-3 text-gray-500">No items found</li>';
+                }}
+            }} catch (err) {{
+                error.textContent = 'Error: ' + err.message;
+                error.classList.remove('hidden');
+            }} finally {{
+                loading.classList.add('hidden');
+            }}
+        }}
+
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>"""
+                    return template.format(component_name=component_name)
             elif "enhance it to be fully responsive" in prompt:
                 return """<!DOCTYPE html>
 <html lang="en">
@@ -140,6 +164,23 @@ def mock_openrouter():
 </html>"""
             elif "Create a comprehensive style guide" in prompt:
                 import json
+                import re
+
+                # Extract component list from prompt (similar to test parsing)
+                components = []
+                lines = prompt.split("\n")
+                in_components_section = False
+                for line in lines:
+                    if "Components:" in line:
+                        in_components_section = True
+                    elif in_components_section:
+                        line = line.strip()
+                        if line.startswith("-"):
+                            comp = line[1:].strip()
+                            if comp:
+                                components.append(comp)
+                        elif line and not line.startswith("-"):
+                            break
 
                 return json.dumps(
                     {
@@ -148,6 +189,7 @@ def mock_openrouter():
                             "secondary": "#10B981",
                             "accent": "#F59E0B",
                             "neutral": "#6B7280",
+                            "background": "#FFFFFF",
                         },
                         "typography": {
                             "font_family": "system-ui, -apple-system, sans-serif",
@@ -155,6 +197,7 @@ def mock_openrouter():
                             "body": "1rem / 1.5rem",
                         },
                         "spacing": {"xs": "0.25rem", "sm": "0.5rem", "md": "1rem"},
+                        "components": components,  # Add the required components key
                     }
                 )
             elif "Review the following" in prompt:
@@ -252,12 +295,12 @@ def mock_openrouter():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accessible Component</title>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 p-4">
     <main role="main">
         <div class="bg-white rounded-lg shadow p-6 max-w-4xl mx-auto">
             <h1>Accessible Form</h1>
+            <img src="image.jpg" alt="A descriptive alt text">
             <form>
                 <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
                 <input 
@@ -329,6 +372,24 @@ def mock_openrouter():
                 or "Create a comprehensive style guide" in prompt
             ):
                 import json
+                import re
+
+                # Extract component list from the prompt
+                components = []
+                # Look for the components section
+                lines = prompt.split("\n")
+                in_components_section = False
+                for line in lines:
+                    if "Components:" in line:
+                        in_components_section = True
+                    elif in_components_section:
+                        line = line.strip()
+                        if line.startswith("-"):
+                            comp = line[1:].strip()
+                            if comp:
+                                components.append(comp)
+                        elif line:  # Non-empty line that's not a list item ends section
+                            break
 
                 return json.dumps(
                     {
@@ -345,6 +406,7 @@ def mock_openrouter():
                             "body": "1rem",
                         },
                         "spacing": {"xs": "0.25rem", "sm": "0.5rem", "md": "1rem"},
+                        "components": components,
                     }
                 )
             return ""
@@ -524,7 +586,7 @@ class TestAccessibility:
 </body>
 </html>"""
 
-        report = await frontend._audit_accessibility(bad_code)
+        report = await frontend_agent._audit_accessibility(bad_code)
 
         assert "issues" in report
         assert report["total_issues"] > 0
@@ -775,7 +837,10 @@ class TestTaskProcessing:
 </html>"""
 
         api_spec = ApiSpec(
-            endpoint="/api/data", method="GET", authentication_required=False
+            endpoint="/api/data",
+            method="GET",
+            description="Get data",
+            authentication_required=False,
         )
 
         task = Task(

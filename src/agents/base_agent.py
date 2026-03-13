@@ -22,6 +22,7 @@ from src.protocols.agent_specs import (
     TaskStatus,
     MessageType,
 )
+from src.state.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class BaseAgent(ABC):
         self,
         agent_id: Optional[str] = None,
         broker: Optional[RedisMessageBroker] = None,
+        state_manager: Optional[StateManager] = None,
     ):
         """
         Initialize base agent.
@@ -51,10 +53,12 @@ class BaseAgent(ABC):
         Args:
             agent_id: Unique agent identifier (auto-generated if None)
             broker: Redis message broker instance (created if None)
+            state_manager: StateManager instance for shared knowledge (created if None)
         """
         self.agent_id = agent_id or f"{self.get_role().value}-{uuid.uuid4().hex[:8]}"
         self.role = self.get_role()
         self.broker = broker or RedisMessageBroker()
+        self.state_manager = state_manager
 
         # Task queue for incoming tasks
         self._task_queue: asyncio.Queue = asyncio.Queue()
@@ -74,6 +78,9 @@ class BaseAgent(ABC):
 
         # Message handlers
         self._message_handlers: Dict[MessageType, Any] = {}
+
+        # Local shared knowledge fallback (when state_manager not available)
+        self._local_shared_knowledge: Dict[str, str] = {}
 
         logger.info(f"Agent {self.agent_id} initialized with role {self.role.value}")
 
@@ -365,6 +372,34 @@ class BaseAgent(ABC):
             if self.last_heartbeat
             else None,
         }
+
+    def get_shared_knowledge(self, key: str) -> Optional[str]:
+        """
+        Retrieve a value from shared knowledge.
+
+        Args:
+            key: Knowledge key to retrieve
+
+        Returns:
+            Value as string, or None if not found
+        """
+        if self.state_manager:
+            return self.state_manager.get_shared_knowledge(key)
+        return self._local_shared_knowledge.get(key)
+
+    def set_shared_knowledge(self, key: str, value: str, source_agent: str) -> None:
+        """
+        Store or update a key-value pair in shared knowledge.
+
+        Args:
+            key: Knowledge key
+            value: Value to store
+            source_agent: Identifier of the agent providing this knowledge
+        """
+        if self.state_manager:
+            self.state_manager.set_shared_knowledge(key, value, source_agent)
+        else:
+            self._local_shared_knowledge[key] = value
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get agent performance metrics."""

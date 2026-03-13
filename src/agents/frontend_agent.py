@@ -135,6 +135,98 @@ class FrontendAgent(BaseAgent):
         try:
             task.mark_in_progress()
             description = task.description.lower()
+            payload = task.payload or {}
+
+            # Early returns for specific task types to avoid keyword conflicts
+            if ("responsive" in description or "mobile" in description) and payload.get(
+                "component_code"
+            ):
+                component_code = payload.get("component_code", "")
+                enhanced_code = await self._ensure_responsive(component_code)
+                return {
+                    "success": True,
+                    "output": {
+                        "original_code": component_code[:200],
+                        "responsive_code": enhanced_code,
+                        "breakpoints_applied": list(self.RESPONSIVE_BREAKPOINTS.keys()),
+                    },
+                    "artifacts": [],
+                    "execution_time": asyncio.get_event_loop().time() - start_time,
+                }
+
+            if any(
+                kw in description for kw in ["accessibility", "a11y", "wcag"]
+            ) and payload.get("component_code"):
+                component_code = payload.get("component_code", "")
+                a11y_report = await self._audit_accessibility(component_code)
+                fixed_code = await self._fix_accessibility_issues(
+                    component_code, a11y_report
+                )
+                return {
+                    "success": True,
+                    "output": {
+                        "original_code": component_code[:200],
+                        "fixed_code": fixed_code,
+                        "accessibility_report": a11y_report,
+                        "issues_found": len(a11y_report.get("issues", [])),
+                        "wcag_compliance": a11y_report.get(
+                            "compliance_level", "unknown"
+                        ),
+                    },
+                    "artifacts": [],
+                    "execution_time": asyncio.get_event_loop().time() - start_time,
+                }
+
+            if any(
+                kw in description for kw in ["integrate", "api", "connect", "backend"]
+            ) and payload.get("component_code"):
+                component_code = payload.get("component_code", "")
+                api_spec_dict = payload.get("api_spec")
+                api_spec = None
+                if api_spec_dict:
+                    if isinstance(api_spec_dict, dict):
+                        api_spec = ApiSpec(**api_spec_dict)
+                    elif isinstance(api_spec_dict, ApiSpec):
+                        api_spec = api_spec_dict
+                if not api_spec:
+                    api_spec_data = self.get_shared_knowledge("latest_api_spec")
+                    if api_spec_data:
+                        try:
+                            api_spec_data = eval(api_spec_data)
+                        except:
+                            api_spec_data = None
+                        if api_spec_data:
+                            api_spec = ApiSpec(**api_spec_data)
+                integrated_code = await self._integrate_backend_api(
+                    component_code, api_spec
+                )
+                return {
+                    "success": True,
+                    "output": {
+                        "original_code": component_code[:200],
+                        "integrated_code": integrated_code,
+                        "api_endpoint": api_spec.endpoint if api_spec else None,
+                        "integration_method": api_spec.method if api_spec else None,
+                    },
+                    "artifacts": [],
+                    "execution_time": asyncio.get_event_loop().time() - start_time,
+                }
+
+            if any(
+                kw in description for kw in ["style guide", "design system"]
+            ) and payload.get("components"):
+                components = payload.get("components", [])
+                style_guide = await self._create_style_guide(components)
+                return {
+                    "success": True,
+                    "output": {
+                        "style_guide": style_guide,
+                        "components_included": components,
+                        "tailwind_config": True,
+                    },
+                    "artifacts": [],
+                    "execution_time": asyncio.get_event_loop().time() - start_time,
+                }
 
             # Determine task type
             if any(
@@ -143,7 +235,13 @@ class FrontendAgent(BaseAgent):
             ):
                 # UI component generation task
                 spec = task.payload.get("spec", {})
-                api_spec = task.payload.get("api_spec")
+                api_spec_dict = task.payload.get("api_spec")
+                api_spec = None
+                if api_spec_dict:
+                    if isinstance(api_spec_dict, dict):
+                        api_spec = ApiSpec(**api_spec_dict)
+                    elif isinstance(api_spec_dict, ApiSpec):
+                        api_spec = api_spec_dict
                 component_name = spec.get("component_name", "UnnamedComponent")
                 requirements = spec.get("requirements", [])
 
@@ -159,9 +257,7 @@ class FrontendAgent(BaseAgent):
                 a11y_report = await self._audit_accessibility(responsive_code)
 
                 # Generate style guide/documentation
-                style_guide = await self._generate_style_guide(
-                    component_name, requirements
-                )
+                style_guide = await self._create_style_guide([component_name])
 
                 result = {
                     "success": True,
@@ -351,7 +447,7 @@ class FrontendAgent(BaseAgent):
         self,
         component_name: str,
         requirements: List[str],
-        api_spec: Optional[ApiSpec],
+        api_spec: Optional[Any],
     ) -> str:
         """Build a prompt for component generation."""
         req_text = (
@@ -360,12 +456,24 @@ class FrontendAgent(BaseAgent):
 
         api_integration = ""
         if api_spec:
+            # Extract api_spec attributes - handle both ApiSpec object and dict
+            if isinstance(api_spec, dict):
+                endpoint = api_spec.get("endpoint", "N/A")
+                method = api_spec.get("method", "N/A")
+                response_schema = api_spec.get("response_schema")
+                auth_required = api_spec.get("authentication_required", False)
+            else:
+                endpoint = getattr(api_spec, "endpoint", "N/A")
+                method = getattr(api_spec, "method", "N/A")
+                response_schema = getattr(api_spec, "response_schema", None)
+                auth_required = getattr(api_spec, "authentication_required", False)
+
             api_integration = f"""
 API Integration Required:
-- Endpoint: {api_spec.endpoint}
-- Method: {api_spec.method}
-- Response Schema: {api_spec.response_schema or "None"}
-- Authentication: {"Yes" if api_spec.authentication_required else "No"}
+- Endpoint: {endpoint}
+- Method: {method}
+- Response Schema: {response_schema or "None"}
+- Authentication: {"Yes" if auth_required else "No"}
 """
         else:
             api_integration = "No specific API integration required."
@@ -622,18 +730,26 @@ Return ONLY the fixed HTML code without markdown fences."""
             return component_code
 
     async def _integrate_backend_api(
-        self, component_code: str, api_spec: Optional[ApiSpec]
+        self, component_code: str, api_spec: Optional[Any]
     ) -> str:
         """
         Integrate frontend component with backend API.
 
         Args:
             component_code: Component HTML/JS
-            api_spec: API specification
+            api_spec: API specification (ApiSpec object or dict)
 
         Returns:
             Integrated code with API calls
         """
+        # Convert dict to ApiSpec if needed
+        if api_spec and isinstance(api_spec, dict):
+            try:
+                api_spec = ApiSpec(**api_spec)
+            except Exception as e:
+                logger.warning(f"Failed to convert api_spec dict to ApiSpec: {e}")
+                api_spec = None
+
         if not api_spec:
             return component_code
 
@@ -643,7 +759,6 @@ Return ONLY the fixed HTML code without markdown fences."""
 API Specification:
 - Endpoint: {api_spec.endpoint}
 - Method: {api_spec.method}
-- Request Schema: {api_spec.request_schema or "None"}
 - Response Schema: {api_spec.response_schema or "None"}
 - Authentication Required: {api_spec.authentication_required}
 
@@ -802,8 +917,6 @@ Format the response as a JSON object with these keys:
     def _check_tool(self, tool_name: str) -> bool:
         """Check if a CLI tool is available."""
         try:
-            import subprocess
-
             subprocess.run([tool_name, "--version"], capture_output=True, timeout=5)
             return True
         except (FileNotFoundError, subprocess.TimeoutExpired):
