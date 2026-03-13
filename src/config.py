@@ -37,6 +37,7 @@ class Config:
     # Agent Configuration
     AGENT_HEARTBEAT_INTERVAL: int = int(os.getenv("AGENT_HEARTBEAT_INTERVAL", 30))
     MAX_CONCURRENT_TASKS: int = int(os.getenv("MAX_CONCURRENT_TASKS", 3))
+    REDIS_CHANNEL_PREFIX: str = os.getenv("REDIS_CHANNEL_PREFIX", "wiggum:agentic:")
 
     @classmethod
     def validate(cls) -> list[str]:

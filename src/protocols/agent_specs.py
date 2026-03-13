@@ -103,6 +103,7 @@ class Task(BaseModel):
     tags: List[str] = Field(default_factory=list)
     dependencies: List[str] = Field(default_factory=list)
     acceptance_criteria: List[str] = Field(default_factory=list)
+    payload: Dict[str, Any] = Field(default_factory=dict)  # Task-specific parameters
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
