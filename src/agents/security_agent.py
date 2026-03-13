@@ -566,7 +566,7 @@ class SecurityAgent(BaseAgent):
                     cwe_id="CWE-1104",
                     confidence=0.9,
                 )
-                 findings.append(finding)
+                findings.append(finding)
 
         return findings
 
@@ -611,7 +611,9 @@ class SecurityAgent(BaseAgent):
             findings.append(finding)
 
         # Generate compliance report
-        compliance_report = self.owasp_validator.generate_compliance_report(owasp_results)
+        compliance_report = self.owasp_validator.generate_compliance_report(
+            owasp_results
+        )
 
         # Determine overall compliance
         is_compliant = compliance_report.get("overall_compliance", False)
@@ -724,7 +726,9 @@ class SecurityAgent(BaseAgent):
                 findings = await self.comprehensive_scan(target)
             elif scan_type == "owasp":
                 owasp_result = await self.validate_owasp_top10(target)
-                findings = [SecurityFinding(**f) for f in owasp_result.get("findings", [])]
+                findings = [
+                    SecurityFinding(**f) for f in owasp_result.get("findings", [])
+                ]
                 owasp_metadata = {
                     "compliance": owasp_result.get("compliance"),
                     "compliance_report": owasp_result.get("compliance_report"),

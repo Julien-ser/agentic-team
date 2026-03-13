@@ -21,6 +21,7 @@ from src.protocols.agent_specs import (
     TaskStatus,
     SecurityFinding,
 )
+from src.security.owasp_validator import OWASPTop10Validator, OWASPCheckResult
 
 
 @pytest.fixture
@@ -598,3 +599,352 @@ jwt_secret = "another-secret"
         findings = await security_agent._scan_file(test_file)
 
         assert any("JWT" in f.description for f in findings)
+
+
+class TestOWASPValidation:
+    """Test OWASP Top 10 2021 validation functionality."""
+
+    @pytest.mark.asyncio
+    async def test_owasp_validator_initialization(self):
+        """Test OWASP validator can be initialized."""
+        validator = OWASPTop10Validator()
+        assert validator is not None
+        assert len(validator.checks) == 10  # All A01-A10 categories
+
+    @pytest.mark.asyncio
+    async def test_validate_owasp_top10_file(self, security_agent, tmp_path):
+        """Test OWASP validation on a single file with vulnerabilities."""
+        test_file = tmp_path / "vuln_app.py"
+        test_file.write_text("""
+# Broken Access Control (A01)
+@app.route('/admin')
+def admin_panel():
+    pass  # No authentication
+
+# Cryptographic Failures (A02)
+SECRET_KEY = "hardcoded_secret_12345"
+PASSWORD = "admin123"
+
+# Injection (A03)
+def get_user(user_id):
+    cursor.execute("SELECT * FROM users WHERE id = " + user_id)
+
+# Insecure Design (A04)
+# TODO: rate limit
+def process_data():
+    data = request.json
+    model.update(data)  # Mass assignment
+
+# Security Misconfiguration (A05)
+DEBUG = True
+
+# Identification Failures (A07)
+def login(username, password):
+    if len(password) < 3:  # Weak password policy
+        pass
+    session['user'] = request.cookies.get('user')  # Session fixation
+
+# Integrity Failures (A08)
+import pickle
+data = pickle.loads(user_input)  # Unsafe deserialization
+
+# Logging Failures (A09)
+def login(user, pwd):
+    print(f"Login attempt: {user}, {pwd}")  # Logging credentials
+
+# SSRF (A10)
+def fetch_data():
+    url = request.args.get('url')
+    response = requests.get(url)  # SSRF vulnerability
+""")
+
+        result = await security_agent.validate_owasp_top10(str(test_file))
+
+        assert result["success"] is True
+        assert "findings" in result
+        assert len(result["findings"]) > 0
+
+        # Should have findings across multiple categories
+        categories = [f["category"] for f in result["findings"]]
+        assert any("owasp_a01" in cat for cat in categories)
+        assert any("owasp_a03" in cat for cat in categories)
+
+        # Should count severity levels
+        assert (
+            result["severity_counts"]["critical"] > 0
+            or result["severity_counts"]["high"] > 0
+        )
+
+    @pytest.mark.asyncio
+    async def test_validate_owasp_top10_directory(self, security_agent, tmp_path):
+        """Test OWASP validation on a directory with multiple files."""
+        test_dir = tmp_path / "project"
+        test_dir.mkdir()
+
+        # File 1 - injection vulnerabilities
+        (test_dir / "db.py").write_text("""
+def query(user_id):
+    sql = "SELECT * FROM users WHERE id = " + user_id
+    cursor.execute(sql)
+""")
+
+        # File 2 - secrets
+        (test_dir / "config.py").write_text("""
+API_KEY = "sk_secret123456"
+DATABASE_PASSWORD = "db_pass_123"
+""")
+
+        # File 3 - XSS and SSRF
+        (test_dir / "web.py").write_text("""
+@app.route('/fetch')
+def fetch():
+    url = request.args.get('url')
+    return requests.get(url)
+
+def render():
+    return f"<div>{request.args.get('data')}</div>"
+""")
+
+        result = await security_agent.validate_owasp_top10(str(test_dir))
+
+        assert result["success"] is True
+        assert result["total_findings"] > 0
+        assert result["scan_type"] == "owasp_top10_2021"
+
+        # Should include compliance report
+        assert "compliance_report" in result
+        assert "overall_compliance" in result
+
+    @pytest.mark.asyncio
+    async def test_owasp_compliance_report_structure(self, security_agent, tmp_path):
+        """Test compliance report has correct structure."""
+        test_file = tmp_path / "test.py"
+        test_file.write_text("SECRET = 'password123'")
+
+        result = await security_agent.validate_owasp_top10(str(test_file))
+
+        report = result["compliance_report"]
+        assert "timestamp" in report
+        assert "categories" in report
+        assert "overall_compliance" in report
+
+        # Check all categories are present
+        expected_categories = [
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A06",
+            "A07",
+            "A08",
+            "A09",
+            "A10",
+        ]
+        for cat in expected_categories:
+            assert cat in report["categories"]
+            assert "name" in report["categories"][cat]
+            assert "passed" in report["categories"][cat]
+            assert "failed_checks" in report["categories"][cat]
+            assert "total_checks" in report["categories"][cat]
+
+    @pytest.mark.asyncio
+    async def test_owasp_clean_file_no_findings(self, security_agent, tmp_path):
+        """Test OWASP validation on clean code produces minimal/no findings."""
+        test_file = tmp_path / "clean.py"
+        test_file.write_text("""
+import os
+from typing import Optional
+
+def get_user(user_id: int) -> Optional[dict]:
+    '''Safely get user by ID using parameterized query.'''
+    query = "SELECT * FROM users WHERE id = %s"
+    cursor.execute(query, (user_id,))
+    return cursor.fetchone()
+
+class UserService:
+    '''User management service with proper security.'''
+
+    def __init__(self, db_connection):
+        self.db = db_connection
+
+    def create_user(self, username: str, email: str) -> dict:
+        '''Create new user with validated input.'''
+        if not self._validate_username(username):
+            raise ValueError("Invalid username")
+
+        # Use parameterized query
+        sql = "INSERT INTO users (username, email) VALUES (%s, %s)"
+        self.db.execute(sql, (username, email))
+        return {"username": username, "email": email}
+
+    def _validate_username(self, username: str) -> bool:
+        '''Validate username format.'''
+        return len(username) >= 3 and username.isalnum()
+""")
+
+        result = await security_agent.validate_owasp_top10(str(test_file))
+
+        # Clean code should have few or no findings
+        assert result["total_findings"] <= 2  # Allow minimal false positives
+
+    @pytest.mark.asyncio
+    async def test_owasp_scan_with_nonexistent_path(self, security_agent):
+        """Test OWASP validation with non-existent path."""
+        result = await security_agent.validate_owasp_top10("/nonexistent/path")
+
+        assert result["success"] is False
+        assert "error" in result
+        assert "Path does not exist" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_owasp_validator_direct_file_check(self, tmp_path):
+        """Test OWASP validator directly on file."""
+        validator = OWASPTop10Validator()
+
+        test_file = tmp_path / "test_owasp.py"
+        test_file.write_text("""
+# A01: Broken Access Control
+@app.route('/admin')
+def admin():
+    pass
+
+# A03: Injection
+cursor.execute("SELECT * FROM users WHERE id = " + user_id)
+
+# A02: Cryptographic Failures
+SECRET = "hardcoded123"
+""")
+
+        results = await validator.validate_file(test_file)
+
+        assert len(results) > 0
+
+        # Check categories
+        categories = [r.category_id for r in results]
+        assert "A01" in categories
+        assert "A02" in categories
+        assert "A03" in categories
+
+    @pytest.mark.asyncio
+    async def test_owasp_dependency_category_a06(self, security_agent):
+        """Test that A06 (Vulnerable Components) is skipped in OWASP validation."""
+        # A06 should be handled by dependency audit, not pattern matching
+        test_content = """
+# This should not trigger A06 pattern checks
+import django
+import requests
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            f.write(test_content)
+            temp_path = f.name
+
+        try:
+            validator = OWASPTop10Validator()
+            results = await validator.validate_file(Path(temp_path))
+
+            # A06 category should be empty (skipped)
+            a06_results = [r for r in results if r.category_id == "A06"]
+            assert len(a06_results) == 0
+        finally:
+            Path(temp_path).unlink(missing_ok=True)
+
+    @pytest.mark.asyncio
+    async def test_owasp_severity_distribution(self, security_agent, tmp_path):
+        """Test that OWASP checks produce correct severity levels."""
+        test_file = tmp_path / "severity_test.py"
+        test_file.write_text("""
+# Critical: Hardcoded AWS key
+AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
+
+# High: SQL injection
+def query(q):
+    cursor.execute("SELECT * FROM " + q)
+
+# Medium: Debug mode
+DEBUG = True
+
+# Low: Verbose error
+try:
+    do_something()
+except:
+    print("Error occurred")
+""")
+
+        result = await security_agent.validate_owasp_top10(str(test_file))
+
+        severity_counts = result["severity_counts"]
+        assert severity_counts["critical"] >= 1
+        assert severity_counts["high"] >= 1
+        assert severity_counts["medium"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_owasp_integration_with_security_scan(self, security_agent, tmp_path):
+        """Test OWASP validation is triggered by security scan with 'owasp' type."""
+        test_file = tmp_path / "test.py"
+        test_file.write_text("SECRET = 'password123'")
+
+        from src.protocols.agent_specs import AgentMessage
+
+        message = AgentMessage(
+            sender=AgentRole.SW_DEV,
+            recipient=AgentRole.SECURITY,
+            message_type=MessageType.SECURITY_SCAN_REQUEST,
+            payload={"scan_type": "owasp", "target": str(test_file)},
+            correlation_id="test-corr-id",
+        )
+
+        security_agent.broker = MagicMock()
+        security_agent.broker.publish = AsyncMock()
+        await security_agent.initialize()
+
+        await security_agent._handle_security_scan_request(message)
+
+        # Should send security report with OWASP metadata
+        security_agent.broker.publish.assert_called_once()
+        call_args = security_agent.broker.publish.call_args
+        payload = call_args[1]["payload"]
+
+        assert "compliance" in payload or "findings" in payload
+
+    def test_owasp_validator_has_all_categories(self):
+        """Test validator defines all 10 OWASP categories."""
+        validator = OWASPTop10Validator()
+        checks = validator.checks
+
+        # Verify all categories exist
+        required_categories = [f"A{i:02d}" for i in range(1, 11)]
+        for cat in required_categories:
+            assert cat in checks, f"Missing OWASP category {cat}"
+            assert len(checks[cat]) > 0, f"Category {cat} has no checks"
+
+    @pytest.mark.asyncio
+    async def test_owasp_report_overall_compliance_false_with_failures(
+        self, security_agent, tmp_path
+    ):
+        """Test that compliance is False when checks fail."""
+        test_file = tmp_path / "fail_compliance.py"
+        test_file.write_text("""
+SECRET_KEY = "hardcoded_secret"
+cursor.execute("SELECT * FROM users WHERE id = " + user_id)
+""")
+
+        result = await security_agent.validate_owasp_top10(str(test_file))
+
+        # Should have failures
+        assert result["compliance"] is False
+        assert result["compliance_report"]["overall_compliance"] is False
+
+    @pytest.mark.asyncio
+    async def test_owasp_cwe_ids_assigned(self, security_agent, tmp_path):
+        """Test that findings include CWE IDs."""
+        test_file = tmp_path / "cwe_test.py"
+        test_file.write_text("PASSWORD = 'secret123'")
+
+        result = await security_agent.validate_owasp_top10(str(test_file))
+
+        for finding in result["findings"]:
+            assert "cwe_id" in finding
+            # Most should have a CWE ID
+            if finding["category"] in ["owasp_a02", "owasp_a03", "owasp_a08"]:
+                assert finding["cwe_id"] is not None
