@@ -15,11 +15,11 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 
 ## Current Progress
 
-**Phase 1 - Planning & Architecture** (In Progress)
+**Phase 1 - Planning & Architecture** (Complete)
 - ✅ Task 1.1: System architecture and component diagram completed
 - ✅ Task 1.2: Define agent role specifications and protocols
 - ✅ Task 1.3: Create database schema for shared state
-- ⬜ Task 1.4: Setup project dependencies and environment configuration
+- ✅ Task 1.4: Setup project dependencies and environment configuration
 
 ## Quick Start
 
