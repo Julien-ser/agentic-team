@@ -134,7 +134,7 @@
   - **Deliverable**: `tests/test_security_agent.py` with mock vulnerabilities
   - **Success**: Agent detects hardcoded API key in test file and sends alert to SW Dev agent
 
-- [ ] **Task 3.2**: Implement Software Development Agent for backend code generation
+- [x] **Task 3.2**: Implement Software Development Agent for backend code generation
   - **Deliverable**: `src/agents/dev_agent.py` class `SoftwareDevAgent`
   - **Capabilities**:
     - Generate Python code from task specifications using OpenCode
