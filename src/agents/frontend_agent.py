@@ -163,7 +163,7 @@ class FrontendAgent(BaseAgent):
                     component_name, requirements
                 )
 
-                return {
+                result = {
                     "success": True,
                     "output": {
                         "component_name": component_name,
@@ -177,6 +177,27 @@ class FrontendAgent(BaseAgent):
                     "artifacts": [],
                     "execution_time": asyncio.get_event_loop().time() - start_time,
                 }
+
+                # Send COMPONENT_READY notification to dev agent
+                try:
+                    await self.send_message(
+                        recipient=AgentRole.SW_DEV,
+                        message_type=MessageType.COMPONENT_READY,
+                        payload={
+                            "component_name": component_name,
+                            "code": responsive_code,
+                            "accessibility_score": a11y_report.get("score", 0),
+                            "requirements": requirements,
+                        },
+                        correlation_id=f"component-ready-{task.id[:8]}",
+                    )
+                    logger.info(
+                        f"Sent COMPONENT_READY for {component_name} to dev agent"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send COMPONENT_READY: {e}")
+
+                return result
 
             elif "responsive" in description or "mobile" in description:
                 # Responsive design task
