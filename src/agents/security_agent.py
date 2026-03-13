@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 
 from src.agents.base_agent import BaseAgent
+from src.messaging.redis_broker import RedisMessageBroker
+from src.state.state_manager import StateManager
 from src.protocols.agent_specs import (
     AgentRole,
     MessageType,
@@ -22,6 +24,7 @@ from src.protocols.agent_specs import (
     Result,
     TaskStatus,
 )
+from src.security.owasp_validator import OWASPTop10Validator
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +38,7 @@ class SecurityAgent(BaseAgent):
     - Scan code for hardcoded secrets and sensitive patterns
     - Detect SQL injection and XSS vulnerabilities
     - Audit dependencies for known CVEs using safety/pip-audit
+    - Perform comprehensive OWASP Top 10 2021 compliance validation
     - Send security alerts and recommendations to other agents
     """
 
@@ -138,6 +142,16 @@ class SecurityAgent(BaseAgent):
     def get_role(self) -> AgentRole:
         """Return the security agent role."""
         return AgentRole.SECURITY
+
+    def __init__(
+        self,
+        agent_id: Optional[str] = None,
+        broker: Optional[RedisMessageBroker] = None,
+        state_manager: Optional[StateManager] = None,
+    ):
+        """Initialize security agent with OWASP validator."""
+        super().__init__(agent_id=agent_id, broker=broker, state_manager=state_manager)
+        self.owasp_validator = OWASPTop10Validator()
 
     async def initialize(self) -> None:
         """Initialize security agent resources."""
@@ -552,9 +566,74 @@ class SecurityAgent(BaseAgent):
                     cwe_id="CWE-1104",
                     confidence=0.9,
                 )
-                findings.append(finding)
+                 findings.append(finding)
 
         return findings
+
+    async def validate_owasp_top10(self, path: str) -> Dict[str, Any]:
+        """
+        Perform OWASP Top 10 2021 compliance validation.
+
+        Args:
+            path: Path to scan (file or directory)
+
+        Returns:
+            Dictionary with compliance report and findings as SecurityFinding objects
+        """
+        scan_path = Path(path)
+        if not scan_path.exists():
+            return {
+                "success": False,
+                "error": f"Path does not exist: {path}",
+                "compliance": False,
+                "findings": [],
+            }
+
+        # Run OWASP validator
+        if scan_path.is_dir():
+            owasp_results = await self.owasp_validator.validate_directory(scan_path)
+        else:
+            owasp_results = await self.owasp_validator.validate_file(scan_path)
+
+        # Convert OWASPCheckResult to SecurityFinding
+        findings = []
+        for result in owasp_results:
+            finding = SecurityFinding(
+                severity=result.severity,
+                category=f"owasp_{result.category_id.lower()}",
+                file_path=result.file_path or path,
+                line_number=result.line_number,
+                description=f"[OWASP {result.category_id}] {result.check_name}: {result.evidence[0] if result.evidence else 'No evidence'}",
+                recommendation=result.recommendation,
+                cwe_id=result.cwe_id,
+                confidence=0.8,
+            )
+            findings.append(finding)
+
+        # Generate compliance report
+        compliance_report = self.owasp_validator.generate_compliance_report(owasp_results)
+
+        # Determine overall compliance
+        is_compliant = compliance_report.get("overall_compliance", False)
+
+        # Count by severity
+        severity_counts = {
+            "critical": sum(1 for f in findings if f.severity == "critical"),
+            "high": sum(1 for f in findings if f.severity == "high"),
+            "medium": sum(1 for f in findings if f.severity == "medium"),
+            "low": sum(1 for f in findings if f.severity == "low"),
+        }
+
+        return {
+            "success": True,
+            "compliance": is_compliant,
+            "compliance_report": compliance_report,
+            "findings": [f.dict() for f in findings],
+            "total_findings": len(findings),
+            "severity_counts": severity_counts,
+            "scan_type": "owasp_top10_2021",
+            "target": path,
+        }
 
     async def send_security_alert(
         self, findings: List[SecurityFinding], message: str, severity: str = "high"
@@ -640,8 +719,16 @@ class SecurityAgent(BaseAgent):
                 f"Received security scan request ({scan_type}) for {target} from {message.sender}"
             )
 
+            owasp_metadata = None
             if scan_type == "comprehensive":
                 findings = await self.comprehensive_scan(target)
+            elif scan_type == "owasp":
+                owasp_result = await self.validate_owasp_top10(target)
+                findings = [SecurityFinding(**f) for f in owasp_result.get("findings", [])]
+                owasp_metadata = {
+                    "compliance": owasp_result.get("compliance"),
+                    "compliance_report": owasp_result.get("compliance_report"),
+                }
             else:
                 findings = await self.scan_codebase(target)
 
@@ -657,6 +744,8 @@ class SecurityAgent(BaseAgent):
                     "low": sum(1 for f in findings if f.severity == "low"),
                 },
             }
+            if owasp_metadata:
+                response.update(owasp_metadata)
 
             await self.send_message(
                 recipient=message.sender,

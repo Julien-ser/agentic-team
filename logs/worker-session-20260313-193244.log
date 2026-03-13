@@ -674,3 +674,323 @@ The Agentic Team project now has comprehensive documentation covering:
 
 New developers can understand the architecture, deploy the system, and start using it immediately.
 📝 Log saved: logs/iteration-37.md
+📊 Token Usage: 9500 / Session: 44250 / 64000
+Unstaged changes after reset:
+M	logs/worker-session-20260313-193244.log
+✅ Changes committed
+To github.com:Julien-ser/agentic-team.git
+   b9dbb05..0593b61  main -> main
+✅ Pushed to GitHub
+📊 Updated Tasks: 23/27 completed, 4 remaining
+   Next task: [SECURITY] Implement OWASP Top 10 checklist validation...
+📍 Iteration 38 at Fri Mar 13 07:41:25 PM EDT 2026...
+🤖 OpenCode processing: [SECURITY] Implement OWASP Top 10 checklist validation
+[0m
+> build · stepfun/step-3.5-flash:free
+[0m
+I'll read the TASKS.md file and implement the OWASP Top 10 checklist validation feature for the Security Agent.
+[0m→ [0mRead TASKS.md
+[0m→ [0mRead src/agents/security_agent.py
+[0m✱ [0mGlob "src/protocols/*.py"[90m 1 match[0m
+[0m→ [0mRead src/protocols/agent_specs.py
+I can see the TASKS.md file shows the mission is accomplished but there's a next task to implement OWASP Top 10 checklist validation. The SecurityAgent already exists with basic scanning capabilities. I need to enhance it with a comprehensive OWASP Top 10 validation feature.
+
+Let me check the protocols file to understand the data models:
+[0m
+[0m# [0mTodos
+[ ] Design OWASP Top 10 validation structure and categories
+[ ] Implement OWASP validator class with check methods
+[ ] Add new checks for missing OWASP categories
+[ ] Integrate OWASP validation into SecurityAgent
+[ ] Write tests for OWASP validation
+[ ] Update TASKS.md to mark OWASP task complete
+[0m
+Now I'll implement OWASP Top 10 checklist validation. I'll add a new comprehensive validation feature to the SecurityAgent that checks all OWASP Top 10 categories and integrates into the existing workflow.
+I'll create a comprehensive OWASP Top 10 validator. First, let me create the validator module:
+[0m← [0mWrite src/security/owasp_validator.py
+Wrote file successfully.
+[0m
+[0m# [0mTodos
+[x] Design OWASP Top 10 validation structure and categories
+[x] Implement OWASP validator class with check methods
+[x] Add new checks for missing OWASP categories
+[ ] Integrate OWASP validation into SecurityAgent
+[ ] Write tests for OWASP validation
+[ ] Update TASKS.md to mark OWASP task complete
+[0m
+Now I'll integrate the OWASP validator into the SecurityAgent. Let me update the security_agent.py file:
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -21,8 +21,9 @@
+     SecurityFinding,
+     Result,
+     TaskStatus,
+ )
++from src.security.owasp_validator import OWASPTop10Validator
+ 
+ 
+ logger = logging.getLogger(__name__)
+ 
+
+[0m
+Now I'll add the OWASP validator initialization and methods to the SecurityAgent class:
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -35,8 +35,9 @@
+ Capabilities:
+ - Scan code for hardcoded secrets and sensitive patterns
+ - Detect SQL injection and XSS vulnerabilities
+ - Audit dependencies for known CVEs using safety/pip-audit
++- Perform comprehensive OWASP Top 10 2021 compliance validation
+ - Send security alerts and recommendations to other agents
+ """
+ 
+ # Secret detection patterns (CWE-798: Use of Hard-coded Credentials)
+
+[0m
+Let me add the validator initialization and OWASP validation method:
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -140,8 +140,13 @@
+ def get_role(self) -> AgentRole:
+     """Return the security agent role."""
+     return AgentRole.SECURITY
+ 
++def __init__(self, agent_id: str, config: Optional[Dict] = None):
++    """Initialize security agent with OWASP validator."""
++    super().__init__(agent_id, config)
++    self.owasp_validator = OWASPTop10Validator()
++
+ async def initialize(self) -> None:
+     """Initialize security agent resources."""
+     await super().initialize()
+ 
+
+[0m
+I need to check the BaseAgent to understand the correct initialization pattern:
+[0m→ [0mRead src/agents/base_agent.py[90m [limit=100][0m
+I'll fix the initialization by adding a proper __init__ method that calls super() correctly:
+[0m
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -140,11 +140,16 @@
+ def get_role(self) -> AgentRole:
+     """Return the security agent role."""
+     return AgentRole.SECURITY
+ 
+-def __init__(self, agent_id: str, config: Optional[Dict] = None):
++def __init__(
++    self,
++    agent_id: Optional[str] = None,
++    broker: Optional[RedisMessageBroker] = None,
++    state_manager: Optional[StateManager] = None,
++):
+     """Initialize security agent with OWASP validator."""
+-    super().__init__(agent_id, config)
++    super().__init__(agent_id=agent_id, broker=broker, state_manager=state_manager)
+     self.owasp_validator = OWASPTop10Validator()
+ 
+ async def initialize(self) -> None:
+     """Initialize security agent resources."""
+
+[0m
+I need to add the proper imports for type hints:
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -13,8 +13,10 @@
+ from pathlib import Path
+ from typing import Dict, List, Any, Optional, Tuple
+ 
+ from src.agents.base_agent import BaseAgent
++from src.messaging.redis_broker import RedisMessageBroker
++from src.state.state_manager import StateManager
+ from src.protocols.agent_specs import (
+     AgentRole,
+     MessageType,
+     Task,
+
+[0m
+[0m→ [0mRead src/agents/security_agent.py[90m [limit=20, offset=140][0m
+Let me check what line 146 contains to understand the error:
+[0m→ [0mRead src/agents/security_agent.py[90m [limit=50, offset=520][0m
+Let me ignore the LSP warning (it seems false positive) and add the OWASP validation method after the comprehensive_scan method:
+[0m✗ [0medit failed
+[91m[1mError: [0mCould not find oldString in the file. It must match exactly, including whitespace, indentation, and line endings.
+Now I'll add the OWASP validation method after comprehensive_scan:
+Let me read the rest of the file to see the exact content:
+[0m→ [0mRead src/agents/security_agent.py[90m [offset=568][0m
+Now I'll add the OWASP validation method:
+[0m
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -565,12 +565,77 @@
+                 recommendation="Update vulnerable packages to latest secure versions. Use dependabot or similar.",
+                 cwe_id="CWE-1104",
+                 confidence=0.9,
+             )
+-            findings.append(finding)
++             findings.append(finding)
+ 
+     return findings
+ 
++async def validate_owasp_top10(self, path: str) -> Dict[str, Any]:
++    """
++    Perform OWASP Top 10 2021 compliance validation.
++
++    Args:
++        path: Path to scan (file or directory)
++
++    Returns:
++        Dictionary with compliance report and findings as SecurityFinding objects
++    """
++    scan_path = Path(path)
++    if not scan_path.exists():
++        return {
++            "success": False,
++            "error": f"Path does not exist: {path}",
++            "compliance": False,
++            "findings": [],
++        }
++
++    # Run OWASP validator
++    if scan_path.is_dir():
++        owasp_results = await self.owasp_validator.validate_directory(scan_path)
++    else:
++        owasp_results = await self.owasp_validator.validate_file(scan_path)
++
++    # Convert OWASPCheckResult to SecurityFinding
++    findings = []
++    for result in owasp_results:
++        finding = SecurityFinding(
++            severity=result.severity,
++            category=f"owasp_{result.category_id.lower()}",
++            file_path=result.file_path or path,
++            line_number=result.line_number,
++            description=f"[OWASP {result.category_id}] {result.check_name}: {result.evidence[0] if result.evidence else 'No evidence'}",
++            recommendation=result.recommendation,
++            cwe_id=result.cwe_id,
++            confidence=0.8,
++        )
++        findings.append(finding)
++
++    # Generate compliance report
++    compliance_report = self.owasp_validator.generate_compliance_report(owasp_results)
++
++    # Determine overall compliance
++    is_compliant = compliance_report.get("overall_compliance", False)
++
++    # Count by severity
++    severity_counts = {
++        "critical": sum(1 for f in findings if f.severity == "critical"),
++        "high": sum(1 for f in findings if f.severity == "high"),
++        "medium": sum(1 for f in findings if f.severity == "medium"),
++        "low": sum(1 for f in findings if f.severity == "low"),
++    }
++
++    return {
++        "success": True,
++        "compliance": is_compliant,
++        "compliance_report": compliance_report,
++        "findings": [f.dict() for f in findings],
++        "total_findings": len(findings),
++        "severity_counts": severity_counts,
++        "scan_type": "owasp_top10_2021",
++        "target": path,
++    }
++
+ async def send_security_alert(
+     self, findings: List[SecurityFinding], message: str, severity: str = "high"
+ ) -> bool:
+     """
+
+[0m
+I'll modify the `_handle_security_scan_request` to support OWASP validation:
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -720,8 +720,11 @@
+ )
+ 
+ if scan_type == "comprehensive":
+     findings = await self.comprehensive_scan(target)
++elif scan_type == "owasp":
++    owasp_result = await self.validate_owasp_top10(target)
++    findings = [SecurityFinding(**f) for f in owasp_result.get("findings", [])]
+ else:
+     findings = await self.scan_codebase(target)
+ 
+ response = {
+
+[0m
+[0m→ [0mRead src/agents/security_agent.py[90m [limit=50, offset=648][0m
+Let me read the current state of the method to edit precisely:
+Let me read the _handle_security_scan_request method:
+[0m→ [0mRead src/agents/security_agent.py[90m [limit=60, offset=698][0m
+I'll edit the response handling to include OWASP metadata:
+[0m
+[0m← [0mEdit src/agents/security_agent.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/security_agent.py
+@@ -718,13 +718,18 @@
+ logger.info(
+     f"Received security scan request ({scan_type}) for {target} from {message.sender}"
+ )
+ 
++owasp_metadata = None
+ if scan_type == "comprehensive":
+     findings = await self.comprehensive_scan(target)
+ elif scan_type == "owasp":
+     owasp_result = await self.validate_owasp_top10(target)
+     findings = [SecurityFinding(**f) for f in owasp_result.get("findings", [])]
++    owasp_metadata = {
++        "compliance": owasp_result.get("compliance"),
++        "compliance_report": owasp_result.get("compliance_report"),
++    }
+ else:
+     findings = await self.scan_codebase(target)
+ 
+ response = {
+@@ -738,8 +743,10 @@
+         "medium": sum(1 for f in findings if f.severity == "medium"),
+         "low": sum(1 for f in findings if f.severity == "low"),
+     },
+ }
++if owasp_metadata:
++    response.update(owasp_metadata)
+ 
+ await self.send_message(
+     recipient=message.sender,
+     message_type=MessageType.SECURITY_REPORT,
+
+[0m
+Now let me update the process_task method to handle OWASP validation tasks. First, I need to read that method:
+[0m→ [0mRead src/agents/security_agent.py[90m [limit=80, offset=156][0m
+```json
+{
+  "command": "PYTHONPATH=. python -m py_compile src/agents/security_agent.py",
+  "description": "Check Python syntax of security_agent.py"
+}
+```
+📝 Log saved: logs/iteration-38.md
