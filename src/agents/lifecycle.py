@@ -10,7 +10,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 from src.protocols.agent_specs import AgentRole
@@ -483,10 +483,6 @@ class LifecycleManager:
         self._running = True
         self._monitor_task = asyncio.create_task(self._monitor_loop())
         return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
-        await self.__aexit__(exc_type, exc_val, exc_tb)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit with proper cleanup."""

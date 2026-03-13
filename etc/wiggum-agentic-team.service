@@ -1,0 +1,17 @@
+[Unit]
+Description=Agentic Team Worker Manager
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team
+Environment="PATH=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/venv/bin"
+ExecStart=/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/venv/bin/python -m orchestrator.main
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
