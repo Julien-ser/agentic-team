@@ -23,7 +23,7 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 
 **Phase 2 - Core Infrastructure & Wiggum Loop Enhancement** (In Progress)
 - ✅ Task 2.1: Implement the enhanced wiggum loop with role-based agent selection
-- [ ] Task 2.2: Build the message broker using Redis pub/sub
+- [x] Task 2.2: Build the message broker using Redis pub/sub
 - [ ] Task 2.3: Create agent base class and lifecycle manager
 - [ ] Task 2.4: Implement shared state manager with SQLite
 

@@ -30,7 +30,8 @@ def mock_redis():
 @pytest.mark.asyncio
 async def test_connect_success(broker, mock_redis):
     """Test successful Redis connection."""
-    with patch("src.messaging.redis_broker.redis.from_url", return_value=mock_redis):
+    mock_from_url = AsyncMock(return_value=mock_redis)
+    with patch("src.messaging.redis_broker.redis.from_url", mock_from_url):
         await broker.connect()
         assert broker._redis is not None
         assert broker._pubsub is not None
@@ -81,7 +82,7 @@ async def test_subscribe_success(broker, mock_redis):
     assert result is True
     assert "test_channel" in broker._subscribers
     assert broker._subscribers["test_channel"] == callback
-    mock_redis.subscribe.assert_called_once_with("test_channel")
+    mock_redis.pubsub.return_value.subscribe.assert_called_once_with("test_channel")
 
 
 @pytest.mark.asyncio
@@ -93,7 +94,7 @@ async def test_unsubscribe_success(broker, mock_redis):
     result = await broker.unsubscribe("test_channel")
     assert result is True
     assert "test_channel" not in broker._subscribers
-    mock_redis.unsubscribe.assert_called_once_with("test_channel")
+    mock_redis.pubsub.return_value.unsubscribe.assert_called_once_with("test_channel")
 
 
 @pytest.mark.asyncio
@@ -220,8 +221,21 @@ async def test_disconnect(broker, mock_redis):
     """Test proper cleanup on disconnect."""
     broker._redis = mock_redis
     broker._pubsub = mock_redis.pubsub.return_value
-    broker._listen_task = asyncio.create_task(asyncio.sleep(0))
+
+    # Create a cancellable task that runs indefinitely
+    cancel_flag = False
+
+    async def long_running_task():
+        nonlocal cancel_flag
+        try:
+            while not cancel_flag:
+                await asyncio.sleep(0.01)
+        except asyncio.CancelledError:
+            raise
+
+    task = asyncio.create_task(long_running_task())
+    broker._listen_task = task
 
     await broker.disconnect()
     mock_redis.close.assert_called_once()
-    broker._listen_task.cancel.assert_called_once()
+    assert task.cancelled()

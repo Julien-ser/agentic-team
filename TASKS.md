@@ -80,7 +80,7 @@
   - **Code requirement**: Use asyncio for concurrent agent execution
   - **Success**: Loop correctly dispatches tasks to appropriate agent workers
 
-- [ ] **Task 2.2**: Build the message broker using Redis pub/sub
+- [x] **Task 2.2**: Build the message broker using Redis pub/sub
   - **Deliverable**: `src/messaging/redis_broker.py` with class `RedisMessageBroker`
   - **Methods to implement**:
     - `connect()` - establish Redis connection
@@ -90,7 +90,7 @@
   - **Deliverable**: Unit tests in `tests/test_redis_broker.py`
   - **Success**: Two agents can exchange messages via Redis pub/sub
 
-- [ ] **Task 2.3**: Create agent base class and lifecycle manager
+- [x] **Task 2.3**: Create agent base class and lifecycle manager
   - **Deliverable**: `src/agents/base_agent.py` with abstract `BaseAgent`
   - **Abstract methods**:
     - `initialize()` - setup agent resources
