@@ -90,7 +90,7 @@ class SecurityAgent(BaseAgent):
             "cwe": "CWE-798",
         },
         "JWT_SECRET": {
-            "pattern": r'(?i)(jwt|token).*secret.*[\'"][^\'"]{16,}[\'"]',
+            "pattern": r'(?i)(jwt|token).*(secret|key).*[\'"][^\'"]{8,}[\'"]',
             "description": "JWT secret key",
             "severity": "critical",
             "cwe": "CWE-798",
@@ -112,7 +112,7 @@ class SecurityAgent(BaseAgent):
             "cwe": "CWE-89",
         },
         "fstring_sql": {
-            "pattern": r' execute\(f[\'"].*SELECT.*\{.*\}[\'"]',
+            "pattern": r'(?i)f[\'"][^\'"]*(SELECT|INSERT|UPDATE|DELETE)[^\'"]*\{[^}]+\}[\'"]',
             "description": "SQL query built with f-string",
             "severity": "high",
             "cwe": "CWE-89",

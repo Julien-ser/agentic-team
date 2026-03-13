@@ -8,6 +8,7 @@ and A2A message handling.
 import asyncio
 import subprocess
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
@@ -560,7 +561,7 @@ class TestHealthCheck:
         """Test health check returns security-specific info."""
         security_agent._running = True
         security_agent._initialized = True
-        security_agent._start_time = asyncio.get_event_loop().time()
+        security_agent._start_time = datetime.utcnow()
 
         health = await security_agent.health_check()
 
