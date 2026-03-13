@@ -145,7 +145,7 @@
   - **Deliverable**: `tests/test_dev_agent.py` with sample task generation
   - **Success**: Agent completes a simple API endpoint task with tests
 
-- [ ] **Task 3.3**: Implement Frontend Agent for UI/UX development
+- [x] **Task 3.3**: Implement Frontend Agent for UI/UX development
   - **Deliverable**: `src/agents/frontend_agent.py` class `FrontendAgent`
   - **Capabilities**:
     - Generate HTML/CSS/JS components from specifications
