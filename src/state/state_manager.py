@@ -399,6 +399,124 @@ class StateManager:
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
 
+    def store_queued_message(
+        self, recipient: str, message: Dict[str, Any]
+    ) -> Optional[int]:
+        """
+        Store a message for an offline agent.
+
+        Args:
+            recipient: Agent role/ID the message is intended for
+            message: Dictionary containing the full message data
+
+        Returns:
+            Message ID if stored successfully, None otherwise
+        """
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Extract fields from message dict
+                message_type = message.get("message_type", "unknown")
+                content = str(message)  # Serialize entire message as content
+                correlation_id = message.get("correlation_id")
+                retry_count = message.get("retry_count", 0)
+
+                cursor.execute(
+                    """
+                    INSERT INTO queued_messages 
+                    (recipient, message_type, content, timestamp, correlation_id, retry_count)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        recipient,
+                        message_type,
+                        content,
+                        self._get_timestamp(),
+                        correlation_id,
+                        retry_count,
+                    ),
+                )
+
+                return cursor.lastrowid
+
+    def get_queued_messages(
+        self, recipient: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve queued messages, optionally filtered by recipient.
+
+        Args:
+            recipient: Optional recipient filter
+
+        Returns:
+            List of queued message dictionaries with id field
+        """
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                query = "SELECT * FROM queued_messages"
+                params = []
+
+                if recipient:
+                    query += " WHERE recipient = ?"
+                    params.append(recipient)
+
+                query += " ORDER BY timestamp ASC"
+
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+                return [dict(row) for row in rows]
+
+    def remove_queued_message(self, message_id: int) -> bool:
+        """
+        Remove a queued message after successful delivery.
+
+        Args:
+            message_id: ID of queued message to remove
+
+        Returns:
+            True if message was removed, False if not found
+        """
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    "DELETE FROM queued_messages WHERE id = ?",
+                    (message_id,),
+                )
+
+                return cursor.rowcount > 0
+
+    def get_queued_message_count(self, recipient: Optional[str] = None) -> int:
+        """
+        Get count of queued messages.
+
+        Args:
+            recipient: Optional recipient filter
+
+        Returns:
+            Number of queued messages
+        """
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                query = "SELECT COUNT(*) FROM queued_messages"
+                params = []
+
+                if recipient:
+                    query += " WHERE recipient = ?"
+                    params.append(recipient)
+
+                cursor.execute(query, params)
+                result = cursor.fetchone()
+
+                return result[0] if result else 0
+
     @staticmethod
     def _get_timestamp() -> str:
         """Get current timestamp in ISO8601 UTC format."""

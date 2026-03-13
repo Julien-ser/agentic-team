@@ -6,6 +6,7 @@ This module defines the SQLite schema for:
 - messages: A2A communication log
 - agent_states: Agent health and current work tracking
 - shared_knowledge: Key-value store for shared data
+- queued_messages: Message queue for offline agents
 """
 
 # SQL statements to create all tables
@@ -50,6 +51,18 @@ CREATE TABLE IF NOT EXISTS shared_knowledge (
     updated_at TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
     FOREIGN KEY (source_agent) REFERENCES agent_states(agent_id) ON DELETE CASCADE
 );
+
+-- Queued messages table: stores messages for offline agents
+CREATE TABLE IF NOT EXISTS queued_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipient TEXT NOT NULL,
+    message_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
+    correlation_id TEXT,
+    retry_count INTEGER DEFAULT 0,
+    FOREIGN KEY (recipient) REFERENCES agent_states(agent_id) ON DELETE CASCADE
+);
 """
 
 CREATE_INDEXES_SQL = """
@@ -59,6 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient);
 CREATE INDEX IF NOT EXISTS idx_messages_correlation ON messages(correlation_id);
+CREATE INDEX IF NOT EXISTS idx_queued_messages_recipient ON queued_messages(recipient);
 """
 
 

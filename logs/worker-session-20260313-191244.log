@@ -847,3 +847,332 @@ ModuleNotFoundError: No module named 'src'
 Let me check how other tests are structured:
 [0m→ [0mRead tests/test_base_agent.py[90m [limit=30][0m
 📝 Log saved: logs/iteration-29.md
+📊 Token Usage: 9500 / Session: 48000 / 64000
+Unstaged changes after reset:
+M	logs/worker-session-20260313-191244.log
+✅ Changes committed
+To github.com:Julien-ser/agentic-team.git
+   5f5d6cf..4a06f6e  main -> main
+✅ Pushed to GitHub
+📊 Updated Tasks: 12/20 completed, 8 remaining
+   Next task: **Task 4.1**: Implement A2A message routing and handling...
+📍 Iteration 30 at Fri Mar 13 07:22:15 PM EDT 2026...
+🤖 OpenCode processing: **Task 4.1**: Implement A2A message routing and handling
+[0m
+> build · stepfun/step-3.5-flash:free
+[0m
+I'll complete Task 4.1 by implementing the A2A message routing and handling system. Let me first examine the current project structure to understand existing code.
+[0m✱ [0mGlob "src/**/*.py"[90m 19 matches[0m
+[0m→ [0mRead src/protocols/agent_specs.py
+[0m→ [0mRead src/messaging/redis_broker.py
+[0m→ [0mRead src/agents/base_agent.py
+Now I'll create the A2A message routing and handling system. I'll create two files:
+
+1. `src/messaging/protocol.py` - Message protocol constants and handlers registry
+2. `src/messaging/router.py` - MessageRouter class for intelligent routing, queuing, and correlation
+[0m
+[0m← [0mWrite src/messaging/protocol.py
+Wrote file successfully.
+
+LSP errors detected in other files:
+<diagnostics file="/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/messaging/redis_broker.py">
+ERROR [34:19] "bool" is not awaitable
+  "bool" is incompatible with protocol "Awaitable[_T_co@Awaitable]"
+    "__await__" is not present
+ERROR [72:40] "publish" is not a known attribute of "None"
+ERROR [93:32] "subscribe" is not a known attribute of "None"
+ERROR [104:32] "unsubscribe" is not a known attribute of "None"
+ERROR [151:46] "get_message" is not a known attribute of "None"
+ERROR [217:23] "bool" is not awaitable
+  "bool" is incompatible with protocol "Awaitable[_T_co@Awaitable]"
+    "__await__" is not present
+</diagnostics>
+[0m
+Now let me create the `router.py` file:
+[0m← [0mWrite src/messaging/router.py
+Wrote file successfully.
+
+LSP errors detected in other files:
+<diagnostics file="/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/messaging/redis_broker.py">
+ERROR [34:19] "bool" is not awaitable
+  "bool" is incompatible with protocol "Awaitable[_T_co@Awaitable]"
+    "__await__" is not present
+ERROR [72:40] "publish" is not a known attribute of "None"
+ERROR [93:32] "subscribe" is not a known attribute of "None"
+ERROR [104:32] "unsubscribe" is not a known attribute of "None"
+ERROR [151:46] "get_message" is not a known attribute of "None"
+ERROR [217:23] "bool" is not awaitable
+  "bool" is incompatible with protocol "Awaitable[_T_co@Awaitable]"
+    "__await__" is not present
+</diagnostics>
+
+LSP errors detected in other files:
+<diagnostics file="/home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/agents/base_agent.py">
+ERROR [161:55] Argument of type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" cannot be assigned to parameter "callback" of type "(Dict[str, Any]) -> None" in function "subscribe"
+  Type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" is not assignable to type "(Dict[str, Any]) -> None"
+    Function return type "CoroutineType[Any, Any, None]" is incompatible with type "None"
+      "CoroutineType[Any, Any, None]" is not assignable to "None"
+ERROR [166:36] Argument of type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" cannot be assigned to parameter "callback" of type "(Dict[str, Any]) -> None" in function "subscribe"
+  Type "(message_dict: Dict[str, Any]) -> CoroutineType[Any, Any, None]" is not assignable to type "(Dict[str, Any]) -> None"
+    Function return type "CoroutineType[Any, Any, None]" is incompatible with type "None"
+      "CoroutineType[Any, Any, None]" is not assignable to "None"
+ERROR [202:55] Argument of type "Task" cannot be assigned to parameter "arg" of type "_FutureLike[_T@shield]" in function "shield"
+  Type "Task" is not assignable to type "_FutureLike[_T@shield]"
+    "Task" is incompatible with protocol "Awaitable[_T@shield]"
+      "__await__" is not present
+    "Task" is not assignable to "Future[_T@shield]"
+ERROR [450:32] Object of type "None" is not subscriptable
+</diagnostics>
+[0m
+[0m→ [0mRead src/config.py
+[0m→ [0mRead src/messaging/__init__.py
+[0m→ [0mRead src/state/state_manager.py
+Good! The config already has `REDIS_CHANNEL_PREFIX`. Now let me update the messaging init file and check the state manager to add support for queued messages:
+[0m
+[0m← [0mEdit src/messaging/__init__.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/messaging/__init__.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/messaging/__init__.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/messaging/__init__.py
+@@ -1,1 +1,18 @@
+-# Messaging module placeholder
++"""
++Messaging subsystem for A2A communication.
++
++Provides:
++- RedisMessageBroker: Pub/sub message transport
++- MessageRouter: Intelligent routing with queuing and correlation
++- Protocol: Message type definitions and handlers registry
++"""
++
++from .redis_broker import RedisMessageBroker
++from .router import MessageRouter
++from .protocol import MessageProtocol, MessageRouter as _MR
++
++__all__ = [
++    "RedisMessageBroker",
++    "MessageRouter",
++    "MessageProtocol",
++]
+
+[0m
+[0m→ [0mRead src/state/schema.py
+Now I need to add queued message support to the StateManager. Let me first check the schema to see if there's a table for queued messages:
+I need to add a table for queued messages. I'll update the schema and add the corresponding methods to StateManager:
+[0m
+[0m← [0mEdit src/state/schema.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/schema.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/schema.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/schema.py
+@@ -5,8 +5,9 @@
+ - tasks: Task definitions and status tracking
+ - messages: A2A communication log
+ - agent_states: Agent health and current work tracking
+ - shared_knowledge: Key-value store for shared data
++- queued_messages: Message queue for offline agents
+ """
+ 
+ # SQL statements to create all tables
+ CREATE_TABLES_SQL = """
+@@ -49,8 +50,20 @@
+     source_agent TEXT NOT NULL,
+     updated_at TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
+     FOREIGN KEY (source_agent) REFERENCES agent_states(agent_id) ON DELETE CASCADE
+ );
++
++-- Queued messages table: stores messages for offline agents
++CREATE TABLE IF NOT EXISTS queued_messages (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    recipient TEXT NOT NULL,
++    message_type TEXT NOT NULL,
++    content TEXT NOT NULL,
++    timestamp TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
++    correlation_id TEXT,
++    retry_count INTEGER DEFAULT 0,
++    FOREIGN KEY (recipient) REFERENCES agent_states(agent_id) ON DELETE CASCADE
++);
+ """
+ 
+ CREATE_INDEXES_SQL = """
+ -- Indexes for performance optimization
+
+[0m
+Now let me also add an index for the queued_messages table and update StateManager with the required methods:
+[0m← [0mEdit src/state/schema.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/schema.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/schema.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/schema.py
+@@ -71,8 +71,9 @@
+ CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
+ CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender);
+ CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient);
+ CREATE INDEX IF NOT EXISTS idx_messages_correlation ON messages(correlation_id);
++CREATE INDEX IF NOT EXISTS idx_queued_messages_recipient ON queued_messages(recipient);
+ """
+ 
+ 
+ # Helper function to get current timestamp in ISO8601 UTC format
+
+[0m
+Now add the queued message methods to StateManager. I'll insert them before the _get_timestamp method:
+[0m← [0mEdit src/state/state_manager.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/state_manager.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/state_manager.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/state/state_manager.py
+@@ -398,8 +398,126 @@
+ 
+             rows = cursor.fetchall()
+             return [dict(row) for row in rows]
+ 
++def store_queued_message(
++    self, recipient: str, message: Dict[str, Any]
++) -> Optional[int]:
++    """
++    Store a message for an offline agent.
++
++    Args:
++        recipient: Agent role/ID the message is intended for
++        message: Dictionary containing the full message data
++
++    Returns:
++        Message ID if stored successfully, None otherwise
++    """
++    with self._lock:
++        with self._get_connection() as conn:
++            cursor = conn.cursor()
++
++            # Extract fields from message dict
++            message_type = message.get("message_type", "unknown")
++            content = str(message)  # Serialize entire message as content
++            correlation_id = message.get("correlation_id")
++            retry_count = message.get("retry_count", 0)
++
++            cursor.execute(
++                """
++                INSERT INTO queued_messages 
++                (recipient, message_type, content, timestamp, correlation_id, retry_count)
++                VALUES (?, ?, ?, ?, ?, ?)
++                """,
++                (
++                    recipient,
++                    message_type,
++                    content,
++                    self._get_timestamp(),
++                    correlation_id,
++                    retry_count,
++                ),
++            )
++
++            return cursor.lastrowid
++
++def get_queued_messages(
++    self, recipient: Optional[str] = None
++) -> List[Dict[str, Any]]:
++    """
++    Retrieve queued messages, optionally filtered by recipient.
++
++    Args:
++        recipient: Optional recipient filter
++
++    Returns:
++        List of queued message dictionaries with id field
++    """
++    with self._lock:
++        with self._get_connection() as conn:
++            cursor = conn.cursor()
++
++            query = "SELECT * FROM queued_messages"
++            params = []
++
++            if recipient:
++                query += " WHERE recipient = ?"
++                params.append(recipient)
++
++            query += " ORDER BY timestamp ASC"
++
++            cursor.execute(query, params)
++            rows = cursor.fetchall()
++
++            return [dict(row) for row in rows]
++
++def remove_queued_message(self, message_id: int) -> bool:
++    """
++    Remove a queued message after successful delivery.
++
++    Args:
++        message_id: ID of queued message to remove
++
++    Returns:
++        True if message was removed, False if not found
++    """
++    with self._lock:
++        with self._get_connection() as conn:
++            cursor = conn.cursor()
++
++            cursor.execute(
++                "DELETE FROM queued_messages WHERE id = ?",
++                (message_id,),
++            )
++
++            return cursor.rowcount > 0
++
++def get_queued_message_count(self, recipient: Optional[str] = None) -> int:
++    """
++    Get count of queued messages.
++
++    Args:
++        recipient: Optional recipient filter
++
++    Returns:
++        Number of queued messages
++    """
++    with self._lock:
++        with self._get_connection() as conn:
++            cursor = conn.cursor()
++
++            query = "SELECT COUNT(*) FROM queued_messages"
++            params = []
++
++            if recipient:
++                query += " WHERE recipient = ?"
++                params.append(recipient)
++
++            cursor.execute(query, params)
++            result = cursor.fetchone()
++
++            return result[0] if result else 0
++
+ @staticmethod
+ def _get_timestamp() -> str:
+     """Get current timestamp in ISO8601 UTC format."""
+     return datetime.now(timezone.utc).isoformat()
+
+[0m
+Now let me update TASKS.md to mark Task 4.1 as complete:
+[0m→ [0mRead TASKS.md
+[0m
+[0m← [0mEdit TASKS.md
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/TASKS.md
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/TASKS.md
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/TASKS.md
+@@ -168,9 +168,9 @@
+   - **Success**: All 3 agents running concurrently, health checks passing
+ 
+ ## Phase 4: A2A Communication & Integration Testing
+ 
+-- [ ] **Task 4.1**: Implement A2A message routing and handling
++- [x] **Task 4.1**: Implement A2A message routing and handling
+   - **Deliverable**: `src/messaging/router.py` with class `MessageRouter`
+   - **Features**:
+     - Route incoming messages to correct agent based on recipient
+     - Support broadcast messages to all agents
+
+[0m
+Let me check if there's an existing tests directory:
+[0m✱ [0mGlob "tests/*.py"[90m 8 matches[0m
+📝 Log saved: logs/iteration-30.md
+📊 Token Usage: 10750 / Session: 58750 / 64000
