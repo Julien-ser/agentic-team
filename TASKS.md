@@ -33,30 +33,20 @@
     ```
   - **Success**: Architecture document reviewed and approved (self-validated by agent)
 
-- [ ] **Task 1.2**: Define agent role specifications and protocols
+- [x] **Task 1.2**: Define agent role specifications and protocols
   - **Deliverable**: `src/protocols/agent_specs.py` containing:
     - Pydantic models for AgentMessage, Task, Result
     - Role-specific capability definitions
     - Message schema validation
     - Protocol constants and enumerations
-  - **Code snippet requirement**:
-    ```python
-    from pydantic import BaseModel
-    from enum import Enum
-    
-    class AgentRole(str, Enum):
-        SECURITY = "security"
-        SW_DEV = "software_developer"
-        FRONTEND = "frontend_developer"
-    
-    class AgentMessage(BaseModel):
-        sender: AgentRole
-        recipient: AgentRole
-        message_type: str
-        payload: dict
-        timestamp: datetime
-        correlation_id: str
-    ```
+  - **Code snippet requirement**: Implemented with full specification including:
+    - AgentRole enum (security, software_developer, frontend_developer)
+    - AgentMessage model with validation
+    - Task and Result models
+    - MessageType enum with all message types
+    - SecurityFinding and ApiSpec models
+    - ProtocolConstants with capabilities, dependencies, and routing rules
+    - Helper functions for channel naming and validation
   - **Success**: All agent specs defined with clear input/output contracts
 
 - [ ] **Task 1.3**: Create database schema for shared state

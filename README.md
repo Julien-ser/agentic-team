@@ -17,7 +17,7 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 
 **Phase 1 - Planning & Architecture** (In Progress)
 - ✅ Task 1.1: System architecture and component diagram completed
-- ⬜ Task 1.2: Define agent role specifications and protocols
+- ✅ Task 1.2: Define agent role specifications and protocols
 - ⬜ Task 1.3: Create database schema for shared state
 - ⬜ Task 1.4: Setup project dependencies and environment configuration
 
@@ -65,6 +65,7 @@ agentic-team/
 ├── docs/                    # Documentation
 │   └── architecture.md     # System design and specifications
 ├── src/                    # Source code
+│   ├── protocols/          # Agent specifications and message protocols
 │   ├── agents/            # Specialized agent implementations
 │   ├── messaging/         # Redis broker and message router
 │   ├── state/             # SQLite state manager
