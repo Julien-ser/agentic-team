@@ -7,7 +7,7 @@ with proper transaction isolation and row-level locking.
 
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import threading
@@ -91,7 +91,6 @@ class StateManager:
                     WHERE role = ? AND status = 'pending'
                     ORDER BY created_at ASC
                     LIMIT 1
-                    FOR UPDATE SKIP LOCKED
                     """,
                     (agent_role,),
                 )
@@ -198,18 +197,13 @@ class StateManager:
         recipient: str,
         message_type: str,
         content: str,
-        correlation_id: Optional[str] = None
+        correlation_id: Optional[str] = None,
     ) -> Optional[int]:
         """
         Persist an A2A message to the database.
 
         Returns:
             Message ID or None if insertion failed
-        """
-        Persist an A2A message to the database.
-
-        Returns:
-            Message ID
         """
         with self._lock:
             with self._get_connection() as conn:
@@ -273,7 +267,7 @@ class StateManager:
                 return [dict(row) for row in rows]
 
     def update_agent_heartbeat(
-        self, agent_id: str, health_status: str = "healthy"
+        self, agent_id: str, role: str, health_status: str = "healthy"
     ) -> bool:
         """
         Update agent heartbeat and health status.
@@ -302,7 +296,7 @@ class StateManager:
                         ?, ?
                     )
                     """,
-                    (agent_id, agent_id, agent_id, agent_id, health_status, timestamp),
+                    (agent_id, agent_id, role, agent_id, health_status, timestamp),
                 )
 
                 return cursor.rowcount > 0
@@ -408,4 +402,4 @@ class StateManager:
     @staticmethod
     def _get_timestamp() -> str:
         """Get current timestamp in ISO8601 UTC format."""
-        return datetime.utcnow().isoformat() + "Z"
+        return datetime.now(timezone.utc).isoformat()

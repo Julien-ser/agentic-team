@@ -47,9 +47,6 @@ class TestTaskOperations:
     ) -> None:
         """Test fetching next pending task."""
         # Insert test tasks
-        state_manager.set_shared_knowledge("test", "setup")  # Ensure db initialized
-
-        # Direct insert for test
         with sqlite3.connect(state_manager.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -272,22 +269,22 @@ class TestAgentHeartbeat:
         self, state_manager: StateManager
     ) -> None:
         """Test that updating heartbeat creates agent if doesn't exist."""
-        state_manager.update_agent_heartbeat("new_agent", "healthy")
+        state_manager.update_agent_heartbeat("new_agent", "security", "healthy")
 
         agent = state_manager.get_agent_state("new_agent")
         assert agent is not None
-        assert agent["role"] == "new_agent"  # Fallback to agent_id as role
+        assert agent["role"] == "security"
         assert agent["health_status"] == "healthy"
 
     def test_update_agent_heartbeat_updates_timestamp(
         self, state_manager: StateManager
     ) -> None:
         """Test that heartbeat updates timestamp."""
-        state_manager.update_agent_heartbeat("agent_001")
+        state_manager.update_agent_heartbeat("agent_001", "security")
 
         time.sleep(0.01)
 
-        state_manager.update_agent_heartbeat("agent_001")
+        state_manager.update_agent_heartbeat("agent_001", "security")
 
         agents = state_manager.get_all_agent_states()
         agent = agents[0]
@@ -300,8 +297,8 @@ class TestAgentHeartbeat:
 
     def test_get_all_agent_states(self, state_manager: StateManager) -> None:
         """Test retrieving all agent states."""
-        state_manager.update_agent_heartbeat("agent_a", "healthy")
-        state_manager.update_agent_heartbeat("agent_b", "unhealthy")
+        state_manager.update_agent_heartbeat("agent_a", "security", "healthy")
+        state_manager.update_agent_heartbeat("agent_b", "security", "unhealthy")
 
         agents = state_manager.get_all_agent_states()
 
@@ -324,7 +321,7 @@ class TestAgentHeartbeat:
             conn.commit()
 
         # Update heartbeat should preserve role
-        state_manager.update_agent_heartbeat("agent_001")
+        state_manager.update_agent_heartbeat("agent_001", "security")
 
         agent = state_manager.get_agent_state("agent_001")
         assert agent["role"] == "security"
@@ -400,7 +397,7 @@ class TestConcurrency:
             except Exception as e:
                 errors.append(e)
 
-        threads = [threading.Thread(target=worker) for _ in range(5)]
+        threads = [threading.Thread(target=worker) for _ in range(10)]
         for t in threads:
             t.start()
         for t in threads:
@@ -477,37 +474,39 @@ class TestEdgeCases:
         self, state_manager: StateManager
     ) -> None:
         """Test agent state with predefined role."""
-        state_manager.update_agent_heartbeat("security_agent_001", "healthy")
+        state_manager.update_agent_heartbeat(
+            "security_agent_001", "security", "healthy"
+        )
 
         agent = state_manager.get_agent_state("security_agent_001")
         assert agent is not None
-        assert agent["role"] == "security_agent_001"  # Uses agent_id as role
+        assert agent["role"] == "security"
 
     def test_transaction_rollback_on_error(self, state_manager: StateManager) -> None:
-        """Test that failed transaction rolls back properly."""
-        # This test verifies the transaction isolation
+        """Test that concurrent task assignment doesn't create duplicates."""
         manager2 = StateManager(db_path=state_manager.db_path)
 
-        # Insert initial task
+        # Insert two pending tasks
         with sqlite3.connect(state_manager.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO tasks (description, role, status) VALUES (?, ?, ?)",
-                ("Rollback test", "security", "pending"),
+                ("Task A", "security", "pending"),
             )
-            task_id = cursor.lastrowid
+            cursor.execute(
+                "INSERT INTO tasks (description, role, status) VALUES (?, ?, ?)",
+                ("Task B", "security", "pending"),
+            )
             conn.commit()
-
-        # Both managers should get different tasks when using get_next_task
-        # This tests the locking mechanism works
 
         task1 = state_manager.get_next_task("security")
         assert task1 is not None
 
-        # Second call should not return same task
         task2 = manager2.get_next_task("security")
         assert task2 is not None
-        assert task2["id"] != task1["id"]
+
+        # Should not be the same task
+        assert task1["id"] != task2["id"]
 
     def test_database_connection_error_handling(
         self, state_manager: StateManager

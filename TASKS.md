@@ -101,7 +101,7 @@
   - **Deliverable**: `src/agents/lifecycle.py` for start/stop/reload controls
   - **Success**: Base agent can be extended with minimal code for new roles
 
-- [ ] **Task 2.4**: Implement shared state manager with SQLite
+- [x] **Task 2.4**: Implement shared state manager with SQLite
   - **Deliverable**: `src/state/state_manager.py` with class `StateManager`
   - **Features**:
     - `get_next_task(agent_role)` - fetch next unassigned task for role
