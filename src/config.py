@@ -39,6 +39,15 @@ class Config:
     MAX_CONCURRENT_TASKS: int = int(os.getenv("MAX_CONCURRENT_TASKS", 3))
     REDIS_CHANNEL_PREFIX: str = os.getenv("REDIS_CHANNEL_PREFIX", "wiggum:agentic:")
 
+    # JWT Authentication Configuration
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_EXPIRATION_DELTA: int = int(os.getenv("JWT_EXPIRATION_DELTA", 3600))
+    JWT_REFRESH_EXPIRATION_DELTA: int = int(
+        os.getenv("JWT_REFRESH_EXPIRATION_DELTA", 604800)
+    )
+    BCRYPT_ROUNDS: int = int(os.getenv("BCRYPT_ROUNDS", 12))
+
     @classmethod
     def validate(cls) -> list[str]:
         """Validate required configuration values."""
