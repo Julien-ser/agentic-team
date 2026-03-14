@@ -48,6 +48,23 @@ class Config:
     )
     BCRYPT_ROUNDS: int = int(os.getenv("BCRYPT_ROUNDS", 12))
 
+    # Rate Limiting Configuration
+    RATE_LIMIT_LOGIN_MAX_ATTEMPTS: int = int(
+        os.getenv("RATE_LIMIT_LOGIN_MAX_ATTEMPTS", 5)
+    )
+    RATE_LIMIT_LOGIN_WINDOW: int = int(
+        os.getenv("RATE_LIMIT_LOGIN_WINDOW", 900)  # 15 minutes in seconds
+    )
+    RATE_LIMIT_REGISTER_MAX_ATTEMPTS: int = int(
+        os.getenv("RATE_LIMIT_REGISTER_MAX_ATTEMPTS", 10)
+    )
+    RATE_LIMIT_REGISTER_WINDOW: int = int(
+        os.getenv("RATE_LIMIT_REGISTER_WINDOW", 3600)  # 1 hour in seconds
+    )
+    RATE_LIMIT_DEFAULT_STORAGE: str = os.getenv(
+        "RATE_LIMIT_DEFAULT_STORAGE", "memory"
+    )  # Options: "memory", "redis"
+
     @classmethod
     def validate(cls) -> list[str]:
         """Validate required configuration values."""

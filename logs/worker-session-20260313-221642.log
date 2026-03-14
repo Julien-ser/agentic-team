@@ -536,3 +536,157 @@ Task completed successfully! The Frontend Agent's login form generation feature:
 TASKS.md updated with `[x]` for the login form component task.
 📝 Log saved: logs/iteration-53.md
 📊 Token Usage: 10000 / Session: 27500 / 64000
+✅ Changes committed
+To github.com:Julien-ser/agentic-team.git
+   4c99592..c9fbf0e  main -> main
+✅ Pushed to GitHub
+📊 Updated Tasks: 26/27 completed, 1 remaining
+   Next task: [SECURITY] Add rate limiting to login endpoint...
+📍 Iteration 54 at Fri Mar 13 10:19:24 PM EDT 2026...
+🤖 OpenCode processing: [SECURITY] Add rate limiting to login endpoint
+[0m
+> build · stepfun/step-3.5-flash:free
+[0m
+[0m→ [0mRead TASKS.md
+[0m→ [0mRead README.md
+[0m✱ [0mGlob "**/*.py"[90m 37 matches[0m
+I'll help you complete the next task: adding rate limiting to the login endpoint. Let me start by exploring the codebase to understand the current structure and locate authentication/API endpoints.
+[0m→ [0mRead src/api/auth.py
+[0m→ [0mRead tests/test_auth_api.py
+[0m→ [0mRead requirements.txt
+Now let me examine the authentication API to understand the current implementation:
+[0m→ [0mRead src/config.py
+Good! I found the authentication API. Now let me check the config file to understand configuration management:
+[0m
+[0m# [0mTodos
+[ ] Add Flask-Limiter to requirements.txt
+[ ] Add rate limiting configuration to config.py
+[ ] Update auth.py to implement rate limiting on login endpoint
+[ ] Write comprehensive tests for rate limiting behavior
+[ ] Run all tests to ensure no regressions
+[ ] Update TASKS.md to mark task as complete
+[ ] Commit changes to git
+[0m
+Now let me create a todo list for this task and start implementing rate limiting:
+[0m# [0mTodos
+[ ] Add Flask-Limiter to requirements.txt
+[ ] Add rate limiting configuration to config.py
+[ ] Update auth.py to implement rate limiting on login endpoint
+[ ] Write comprehensive tests for rate limiting behavior
+[ ] Run all tests to ensure no regressions
+[ ] Update TASKS.md to mark task as complete
+[ ] Commit changes to git
+[0m
+Let me start by adding Flask-Limiter to requirements.txt:
+[0m← [0mEdit requirements.txt
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/requirements.txt
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/requirements.txt
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/requirements.txt
+@@ -10,4 +10,5 @@
+ safety>=3.0.0
+ pip-audit>=2.10.0
+ pyjwt>=2.8.0
+ bcrypt>=4.0.0
++flask-limiter>=3.5.0
+
+[0m
+[0m# [0mTodos
+[x] Add Flask-Limiter to requirements.txt
+[ ] Add rate limiting configuration to config.py
+[ ] Update auth.py to implement rate limiting on login endpoint
+[ ] Write comprehensive tests for rate limiting behavior
+[ ] Run all tests to ensure no regressions
+[ ] Update TASKS.md to mark task as complete
+[ ] Commit changes to git
+[0m
+[0m← [0mEdit src/config.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/config.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/config.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/config.py
+@@ -47,8 +47,25 @@
+     os.getenv("JWT_REFRESH_EXPIRATION_DELTA", 604800)
+ )
+ BCRYPT_ROUNDS: int = int(os.getenv("BCRYPT_ROUNDS", 12))
+ 
++# Rate Limiting Configuration
++RATE_LIMIT_LOGIN_MAX_ATTEMPTS: int = int(
++    os.getenv("RATE_LIMIT_LOGIN_MAX_ATTEMPTS", 5)
++)
++RATE_LIMIT_LOGIN_WINDOW: int = int(
++    os.getenv("RATE_LIMIT_LOGIN_WINDOW", 900)  # 15 minutes in seconds
++)
++RATE_LIMIT_REGISTER_MAX_ATTEMPTS: int = int(
++    os.getenv("RATE_LIMIT_REGISTER_MAX_ATTEMPTS", 10)
++)
++RATE_LIMIT_REGISTER_WINDOW: int = int(
++    os.getenv("RATE_LIMIT_REGISTER_WINDOW", 3600)  # 1 hour in seconds
++)
++RATE_LIMIT_DEFAULT_STORAGE: str = os.getenv(
++    "RATE_LIMIT_DEFAULT_STORAGE", "memory"
++)  # Options: "memory", "redis"
++
+ @classmethod
+ def validate(cls) -> list[str]:
+     """Validate required configuration values."""
+     errors = []
+
+[0m
+[0m# [0mTodos
+[x] Add Flask-Limiter to requirements.txt
+[x] Add rate limiting configuration to config.py
+[ ] Update auth.py to implement rate limiting on login endpoint
+[ ] Write comprehensive tests for rate limiting behavior
+[ ] Run all tests to ensure no regressions
+[ ] Update TASKS.md to mark task as complete
+[ ] Commit changes to git
+[0m
+[0m← [0mEdit src/api/auth.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/api/auth.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/api/auth.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/api/auth.py
+@@ -15,8 +15,10 @@
+ from flask import Flask, request, jsonify, g, current_app
+ import jwt
+ import bcrypt
+ from dotenv import load_dotenv
++from flask_limiter import Limiter
++from flask_limiter.util import get_remote_address
+ 
+ from src.config import config
+ 
+ load_dotenv()
+
+[0m
+Now I need to add the limiter initialization and apply it to the login endpoint. Let me modify the create_auth_app function and the login endpoint:
+[0m← [0mEdit src/api/auth.py
+Index: /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/api/auth.py
+===================================================================
+--- /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/api/auth.py
++++ /home/julien/Desktop/Free-Wiggum-opencode/projects/agentic-team/src/api/auth.py
+@@ -54,8 +54,19 @@
+         "JWT_SECRET_KEY must be set in environment variables. "
+         "Generate with: openssl rand -hex 32"
+     )
+ 
++# Initialize rate limiter
++limiter = Limiter(
++    app=app,
++    key_func=get_remote_address,
++    default_limits=[
++        f"{config.RATE_LIMIT_REGISTER_MAX_ATTEMPTS} per {config.RATE_LIMIT_REGISTER_WINDOW} seconds"
++    ],
++    storage_uri=config.RATE_LIMIT_DEFAULT_STORAGE,
++)
++app.limiter = limiter
++
+ # Initialize user storage (in production, use a database)
+ app.config["USERS"] = {}
+ _load_initial_users(app)
+ 
+
+[0m
+📝 Log saved: logs/iteration-54.md
+📊 Token Usage: 9250 / Session: 36750 / 64000

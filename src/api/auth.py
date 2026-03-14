@@ -16,6 +16,8 @@ from flask import Flask, request, jsonify, g, current_app
 import jwt
 import bcrypt
 from dotenv import load_dotenv
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from src.config import config
 
@@ -52,6 +54,17 @@ def create_auth_app() -> Flask:
             "JWT_SECRET_KEY must be set in environment variables. "
             "Generate with: openssl rand -hex 32"
         )
+
+    # Initialize rate limiter
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=[
+            f"{config.RATE_LIMIT_REGISTER_MAX_ATTEMPTS} per {config.RATE_LIMIT_REGISTER_WINDOW} seconds"
+        ],
+        storage_uri=config.RATE_LIMIT_DEFAULT_STORAGE,
+    )
+    app.limiter = limiter
 
     # Initialize user storage (in production, use a database)
     app.config["USERS"] = {}
