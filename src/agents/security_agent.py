@@ -629,6 +629,7 @@ class SecurityAgent(BaseAgent):
         return {
             "success": True,
             "compliance": is_compliant,
+            "overall_compliance": is_compliant,
             "compliance_report": compliance_report,
             "findings": [f.dict() for f in findings],
             "total_findings": len(findings),

@@ -78,7 +78,7 @@ class OWASPTop10Validator:
             "A02": [
                 {
                     "name": "Hardcoded secrets",
-                    "pattern": r"(?:password|secret|key|token|api_key)\s*[=:]\s*['\"][^'\"]{4,}['\"]",
+                    "pattern": r"(?i)(?:password|secret|key|token|api_key)\s*[=:]\s*['\"][^'\"]{4,}['\"]",
                     "description": "Hardcoded credentials detected",
                     "severity": "critical",
                     "recommendation": "Use environment variables or secure vault for secrets",
