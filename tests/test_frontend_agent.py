@@ -44,21 +44,24 @@ def mock_broker():
     return broker
 
 
-    @pytest.fixture
-    def mock_openrouter():
-        """Mock OpenRouter API calls."""
-        with patch.object(FrontendAgent, "_call_openrouter") as mock:
+@pytest.fixture
+def mock_openrouter():
+    """Mock OpenRouter API calls."""
+    with patch.object(FrontendAgent, "_call_openrouter") as mock:
 
-            async def mock_call(prompt):
-                # Extract component name from prompt if present
-                import re
-                component_name_match = re.search(r"named '([^']+)'", prompt)
-                component_name = component_name_match.group(1) if component_name_match else "Component"
+        async def mock_call(prompt):
+            # Extract component name from prompt if present
+            import re
 
-                # Return sample code based on prompt content
-                if "Create a modern, production-ready frontend component" in prompt:
-                    # Return component with name and API fetch integration
-                    template = """<!DOCTYPE html>
+            component_name_match = re.search(r"named '([^']+)'", prompt)
+            component_name = (
+                component_name_match.group(1) if component_name_match else "Component"
+            )
+
+            # Return sample code based on prompt content
+            if "Create a modern, production-ready frontend component" in prompt:
+                # Return component with name and API fetch integration
+                template = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -124,7 +127,7 @@ def mock_broker():
     </script>
 </body>
 </html>"""
-                    return template.format(component_name=component_name)
+                return template.format(component_name=component_name)
             elif "enhance it to be fully responsive" in prompt:
                 return """<!DOCTYPE html>
 <html lang="en">
@@ -236,7 +239,7 @@ def mock_broker():
         </div>
     </main>
     <script>
-        async function loadUsers() {
+        async function loadUsers() {{
             const loading = document.getElementById('loading');
             const error = document.getElementById('error');
             const userList = document.getElementById('userList');
@@ -245,43 +248,43 @@ def mock_broker():
             error.classList.add('hidden');
             userList.innerHTML = '';
 
-            try {
+            try {{
                 const token = localStorage.getItem('jwt_token');
-                const response = await fetch('/api/v1/users', {
+                const response = await fetch('/api/v1/users', {{
                     method: 'GET',
-                    headers: {
+                    headers: {{
                         'Content-Type': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    }
-                });
+                        'Authorization': token ? `Bearer ${{token}}` : ''
+                    }}
+                }});
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+                if (!response.ok) {{
+                    throw new Error(`HTTP ${{response.status}}: ${{response.statusText}}`);
+                }}
 
                 const data = await response.json();
                 const users = data.users || data;
 
-                users.forEach(user => {
+                users.forEach(user => {{
                     const li = document.createElement('li');
                     li.className = 'p-3 border rounded flex justify-between';
                     li.innerHTML = `
-                        <span class="font-medium">${user.email || user.name}</span>
-                        <span class="text-gray-500">ID: {user.id}</span>
+                        <span class="font-medium">${{user.email || user.name}}</span>
+                        <span class="text-gray-500">ID: ${{user.id}}</span>
                     `;
                     userList.appendChild(li);
-                });
+                }});
 
-                if (users.length === 0) {
+                if (users.length === 0) {{
                     userList.innerHTML = '<li class="p-3 text-gray-500">No users found</li>';
-                }
-            } catch (err) {
+                }}
+            }} catch (err) {{
                 error.textContent = 'Error loading users: ' + err.message;
                 error.classList.remove('hidden');
-            } finally {
+            }} finally {{
                 loading.classList.add('hidden');
-            }
-        }
+            }}
+        }}
 
         // Load on page load
         document.addEventListener('DOMContentLoaded', loadUsers);
@@ -342,7 +345,7 @@ def mock_broker():
         </form>
     </div>
     <script>
-        document.getElementById('secureForm').addEventListener('submit', async (e) => {
+        document.getElementById('secureForm').addEventListener('submit', async (e) => {{
             e.preventDefault();
             const message = document.getElementById('message').value;
             const output = document.createElement('div');
@@ -350,20 +353,20 @@ def mock_broker():
             output.textContent = 'Processing...';
             document.getElementById('app').appendChild(output);
 
-            try {
-                const response = await fetch('/api/message', {
+            try {{
+                const response = await fetch('/api/message', {{
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ message: message }})
+                }});
                 const data = await response.json();
                 output.textContent = 'Success: ' + JSON.stringify(data);
                 output.style.backgroundColor = '#d4edda';
-            } catch (error) {
+            }} catch (error) {{
                 output.textContent = 'Error: ' + error.message;
                 output.style.backgroundColor = '#f8d7da';
-            }
-        });
+            }}
+        }});
     </script>
 </body>
 </html>"""
@@ -1301,7 +1304,7 @@ class TestLoginFormGeneration:
         assert "submit" in login_form.lower() or "button" in login_form.lower()
 
         # Check for responsive meta tag
-        assert 'viewport' in login_form
+        assert "viewport" in login_form
 
         # Check for Tailwind CSS
         assert "cdn.tailwindcss.com" in login_form
@@ -1317,7 +1320,12 @@ class TestLoginFormGeneration:
         # Check for ARIA attributes
         has_aria = any(
             attr in login_form
-            for attr in ["aria-label", "aria-labelledby", "aria-describedby", "aria-live"]
+            for attr in [
+                "aria-label",
+                "aria-labelledby",
+                "aria-describedby",
+                "aria-live",
+            ]
         )
         assert has_aria, "Should include ARIA attributes for accessibility"
 
@@ -1328,8 +1336,10 @@ class TestLoginFormGeneration:
         assert has_semantic, "Should use semantic HTML elements"
 
         # Check for error handling with role="alert" or aria-live
-        has_error_handling = "role=\"alert\"" in login_form or "aria-live" in login_form
-        assert has_error_handling, "Should have proper error announcement for screen readers"
+        has_error_handling = 'role="alert"' in login_form or "aria-live" in login_form
+        assert has_error_handling, (
+            "Should have proper error announcement for screen readers"
+        )
 
     @pytest.mark.asyncio
     async def test_login_form_has_responsive_design(self, frontend_agent):
@@ -1337,7 +1347,17 @@ class TestLoginFormGeneration:
         login_form = await frontend_agent._generate_login_form()
 
         # Check for responsive classes
-        responsive_classes = ["max-w-", "sm:", "md:", "lg:", "xl:", "flex", "grid", "p-4", "p-"]
+        responsive_classes = [
+            "max-w-",
+            "sm:",
+            "md:",
+            "lg:",
+            "xl:",
+            "flex",
+            "grid",
+            "p-4",
+            "p-",
+        ]
         has_responsive = any(cls in login_form for cls in responsive_classes)
         assert has_responsive, "Should include responsive design classes"
 
@@ -1361,11 +1381,15 @@ class TestLoginFormGeneration:
         login_form = await frontend_agent._generate_login_form()
 
         # Check for validation attributes
-        has_required = 'required' in login_form
+        has_required = "required" in login_form
         has_email_type = 'type="email"' in login_form or 'type="text"' in login_form
-        has_validation = "validate" in login_form.lower() or "valid" in login_form.lower()
+        has_validation = (
+            "validate" in login_form.lower() or "valid" in login_form.lower()
+        )
 
-        assert has_required or has_email_type or has_validation, "Should include form validation"
+        assert has_required or has_email_type or has_validation, (
+            "Should include form validation"
+        )
 
     @pytest.mark.asyncio
     async def test_login_form_has_api_integration_structure(self, frontend_agent):
@@ -1453,4 +1477,3 @@ class TestLoginFormGeneration:
         # Check for JavaScript functionality
         assert "<script>" in login_form or "<script " in login_form
         assert "addEventListener" in login_form or "DOMContentLoaded" in login_form
-
