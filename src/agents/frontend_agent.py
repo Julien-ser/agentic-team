@@ -589,9 +589,9 @@ Return ONLY the complete HTML code without any explanatory text. Do not include 
 
         except Exception as e:
             logger.error(f"Login form generation failed: {e}")
-            return await self._generate_fallback_login_form(custom_validations)
+            return self._generate_fallback_login_form(custom_validations)
 
-    async def _generate_fallback_login_form(
+    def _generate_fallback_login_form(
         self, custom_validations: Optional[Dict[str, Any]] = None
     ) -> str:
         """Generate fallback login form when AI is unavailable."""
@@ -606,6 +606,7 @@ Return ONLY the complete HTML code without any explanatory text. Do not include 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom validations: {custom_validations if custom_validations else "None"} -->
     <style>
         .password-toggle {{
             position: absolute;

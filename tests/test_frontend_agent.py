@@ -1457,7 +1457,7 @@ class TestLoginFormGeneration:
         assert "<!DOCTYPE html>" in login_form
         assert "<html" in login_form
         assert "<head>" in login_form
-        assert "<body>" in login_form
+        assert "<body" in login_form
         assert "</html>" in login_form
 
         # Check head elements

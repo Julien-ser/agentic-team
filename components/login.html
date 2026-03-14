@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom validations: None -->
+    <style>
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .error-message {
+            color: #DC2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .success-message {
+            color: #059669;
+            background: #D1FAE5;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+        .loading-spinner {
+            border: 2px solid #E5E7EB;
+            border-top: 2px solid #3B82F6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .strength-meter {
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .strength-weak { background: #EF4444; width: 33%; }
+        .strength-medium { background: #F59E0B; width: 66%; }
+        .strength-strong { background: #10B981; width: 100%; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <main class="w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-gray-900">Welcome Back</h1>
+                <p class="text-gray-600 mt-2">Sign in to your account</p>
+            </div>
+
+            <div id="errorContainer" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 hidden" role="alert" aria-live="polite"></div>
+            <div id="successContainer" class="success-message hidden" role="status" aria-live="polite"></div>
+
+            <form id="loginForm" novalidate>
+                <div class="mb-6">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address <span class="text-red-500" aria-label="required">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="username"
+                        required
+                        aria-required="true"
+                        aria-describedby="emailHelp emailError"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                        placeholder="you@example.com"
+                    >
+                    <p id="emailHelp" class="text-gray-500 text-sm mt-1">We'll never share your email</p>
+                    <div id="emailError" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Password <span class="text-red-500" aria-label="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            autocomplete="current-password"
+                            required
+                            aria-required="true"
+                            aria-describedby="passwordHelp passwordError strengthMeter"
+                            class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                            placeholder="Enter your password"
+                        >
+                        <button
+                            type="button"
+                            class="password-toggle text-gray-500 hover:text-gray-700"
+                            aria-label="Toggle password visibility"
+                            tabindex="0"
+                        >
+                            <svg id="eyeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="strength-meter mt-2" id="strengthMeter" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    <p id="passwordHelp" class="text-gray-500 text-sm mt-1">Min 8 chars, uppercase, lowercase, number</p>
+                    <div id="passwordError" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+
+                <div class="mb-6 flex items-center">
+                    <input
+                        type="checkbox"
+                        id="rememberMe"
+                        name="rememberMe"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    >
+                    <label for="rememberMe" class="ml-2 block text-sm text-gray-700">
+                        Remember me
+                    </label>
+                </div>
+
+                <button
+                    type="submit"
+                    id="submitBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:ring-4 focus:ring-blue-200 transition duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <span id="btnText">Sign In</span>
+                    <span id="btnLoading" class="loading-spinner hidden"></span>
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    Don't have an account?
+                    <a href="/signup" class="text-blue-600 hover:text-blue-800 font-medium">Sign up</a>
+                </p>
+                <p class="text-sm text-gray-600 mt-2">
+                    <a href="/forgot-password" class="text-blue-600 hover:text-blue-800">Forgot password?</a>
+                </p>
+            </div>
+        </div>
+
+        <p class="text-center text-gray-500 text-xs mt-4">
+            Protected by industry-standard security
+        </p>
+    </main>
+
+    <script>
+        (function() {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const emailError = document.getElementById('emailError');
+            const passwordError = document.getElementById('passwordError');
+            const errorContainer = document.getElementById('errorContainer');
+            const successContainer = document.getElementById('successContainer');
+            const strengthMeter = document.getElementById('strengthMeter');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoading = document.getElementById('btnLoading');
+            const passwordToggle = document.querySelector('.password-toggle');
+            const eyeIcon = document.getElementById('eyeIcon');
+            const loginForm = document.getElementById('loginForm');
+
+            let passwordVisible = false;
+
+            // Auto-focus email field
+            document.addEventListener('DOMContentLoaded', () => {
+                emailInput.focus();
+            });
+
+            // Password visibility toggle
+            passwordToggle.addEventListener('click', () => {
+                passwordVisible = !passwordVisible;
+                passwordInput.type = passwordVisible ? 'text' : 'password';
+
+                if (passwordVisible) {
+                    eyeIcon.innerHTML = `
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    `;
+                } else {
+                    eyeIcon.innerHTML = `
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    `;
+                }
+            });
+
+            // Password strength checker
+            function calculatePasswordStrength(password) {
+                let score = 0;
+                if (!password) return 0;
+
+                if (password.length >= 8) score += 25;
+                if (/[a-z]/.test(password)) score += 25;
+                if (/[A-Z]/.test(password)) score += 25;
+                if (/[0-9]/.test(password)) score += 25;
+
+                return score;
+            }
+
+            function updateStrengthMeter(password) {
+                const strength = calculatePasswordStrength(password);
+                strengthMeter.className = 'strength-meter';
+
+                if (strength < 50) {
+                    strengthMeter.classList.add('strength-weak');
+                    strengthMeter.setAttribute('aria-valuenow', '33');
+                    strengthMeter.title = 'Weak password';
+                } else if (strength < 100) {
+                    strengthMeter.classList.add('strength-medium');
+                    strengthMeter.setAttribute('aria-valuenow', '66');
+                    strengthMeter.title = 'Medium strength';
+                } else {
+                    strengthMeter.classList.add('strength-strong');
+                    strengthMeter.setAttribute('aria-valuenow', '100');
+                    strengthMeter.title = 'Strong password';
+                }
+            }
+
+            passwordInput.addEventListener('input', () => {
+                updateStrengthMeter(passwordInput.value);
+                validatePassword();
+            });
+
+            // Email validation
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+
+            function setFieldError(input, message) {
+                const errorEl = document.getElementById(input.id + 'Error');
+                input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                input.classList.remove('border-gray-300');
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+            }
+
+            function clearFieldError(input) {
+                const errorEl = document.getElementById(input.id + 'Error');
+                input.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                input.classList.add('border-gray-300');
+                errorEl.classList.add('hidden');
+                errorEl.textContent = '';
+            }
+
+            function validateEmail() {
+                const email = emailInput.value.trim();
+                if (!email) {
+                    setFieldError(emailInput, 'Email is required');
+                    return false;
+                }
+                if (!validateEmail(email)) {
+                    setFieldError(emailInput, 'Please enter a valid email address');
+                    return false;
+                }
+                clearFieldError(emailInput);
+                return true;
+            }
+
+            function validatePassword() {
+                const password = passwordInput.value;
+                if (!password) {
+                    setFieldError(passwordInput, 'Password is required');
+                    return false;
+                }
+                if (password.length < 8) {
+                    setFieldError(passwordInput, 'Password must be at least 8 characters');
+                    return false;
+                }
+                if (!/[a-z]/.test(password)) {
+                    setFieldError(passwordInput, 'Password must contain a lowercase letter');
+                    return false;
+                }
+                if (!/[A-Z]/.test(password)) {
+                    setFieldError(passwordInput, 'Password must contain an uppercase letter');
+                    return false;
+                }
+                if (!/[0-9]/.test(password)) {
+                    setFieldError(passwordInput, 'Password must contain a number');
+                    return false;
+                }
+                clearFieldError(passwordInput);
+                strengthMeter.classList.remove('strength-weak', 'strength-medium', 'strength-strong');
+                return true;
+            }
+
+            // Clear errors on input
+            emailInput.addEventListener('input', validateEmail);
+            passwordInput.addEventListener('input', validatePassword);
+
+            // Form submission
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const isEmailValid = validateEmail();
+                const isPasswordValid = validatePassword();
+
+                if (!isEmailValid || !isPasswordValid) {
+                    // Focus first invalid field
+                    if (!isEmailValid) emailInput.focus();
+                    else if (!isPasswordValid) passwordInput.focus();
+                    return;
+                }
+
+                const formData = {
+                    email: emailInput.value.trim(),
+                    password: passwordInput.value,
+                    remember_me: document.getElementById('rememberMe').checked
+                };
+
+                // Disable form during submission
+                submitBtn.disabled = true;
+                btnText.textContent = 'Signing in...';
+                btnLoading.classList.remove('hidden');
+                errorContainer.classList.add('hidden');
+                successContainer.classList.add('hidden');
+
+                try {
+                    const response = await fetch('/api/v1/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            throw new Error('Invalid email or password');
+                        } else if (response.status === 429) {
+                            throw new Error('Too many attempts. Please try again later.');
+                        } else {
+                            throw new Error(data.error || 'Authentication failed');
+                        }
+                    }
+
+                    // Store JWT token
+                    if (data.token) {
+                        localStorage.setItem('jwt_token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+
+                    // Show success
+                    successContainer.textContent = 'Login successful! Redirecting...';
+                    successContainer.classList.remove('hidden');
+                    errorContainer.classList.add('hidden');
+
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        window.location.href = data.redirect_to || '/dashboard';
+                    }, 1000);
+
+                } catch (error) {
+                    errorContainer.textContent = error.message;
+                    errorContainer.classList.remove('hidden');
+                    successContainer.classList.add('hidden');
+                } finally {
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Sign In';
+                    btnLoading.classList.add('hidden');
+                }
+            });
+
+            // Keyboard accessibility for password toggle
+            passwordToggle.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    passwordToggle.click();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
