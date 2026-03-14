@@ -29,6 +29,10 @@ Read the full architecture documentation in [`docs/architecture.md`](docs/archit
 
 **Phase 3 - Specialized Agent Workers** (Complete)
 - ✅ Task 3.1: Implement Security Agent with vulnerability scanning & code review
+  - ✅ OWASP Top 10 2021 compliance validation integrated (`src/security/owasp_validator.py`)
+  - ✅ Comprehensive security pattern detection (secrets, SQL injection, XSS, SSRF, etc.)
+  - ✅ Dependency CVE auditing with safety/pip-audit
+  - ✅ Automated security alerts and recommendations to other agents
 - ✅ Task 3.2: Implement Software Development Agent for backend code generation
 - ✅ Task 3.3: Implement Frontend Agent for UI/UX development
 - ✅ Task 3.4: Build agent worker orchestration with health monitoring
@@ -108,9 +112,13 @@ agentic-team/
 
 ## Agent Capabilities
 
-- **Security Agent**: Vulnerability scanning, CVE checking, security recommendations
-- **Software Dev Agent**: Code generation, unit testing, code formatting, refactoring
-- **Frontend Agent**: UI component generation, responsive design, API integration
+- **Security Agent**: 
+  - OWASP Top 10 2021 compliance validation
+  - Vulnerability scanning (secrets, SQL injection, XSS, SSRF, etc.)
+  - Dependency CVE auditing (safety, pip-audit)
+  - Security recommendations and A2A alerts
+- **Software Dev Agent**: Code generation, unit testing, formatting (black), linting (ruff), refactoring
+- **Frontend Agent**: UI component generation, responsive design (Tailwind CSS), accessibility, API integration
 
 ## Message Protocol
 

@@ -904,7 +904,13 @@ except:
         security_agent.broker.publish.assert_called_once()
         call_args = security_agent.broker.publish.call_args
         # publish(channel, message) - message is second positional arg
-        payload = call_args[0][1] if call_args[0] else call_args[1].get("message", {})
+        # The message is an AgentMessage object, so we need to access its payload
+        message_obj = call_args[0][1] if call_args[0] else call_args[1]
+        payload = (
+            message_obj.payload
+            if hasattr(message_obj, "payload")
+            else message_obj.get("payload", {})
+        )
 
         assert "compliance" in payload or "findings" in payload
 

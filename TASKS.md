@@ -121,6 +121,7 @@
     - Review dependencies for known CVEs using `safety` or `pip-audit`
     - Generate security recommendations for code changes
     - Send security alerts to other agents via A2A
+    - Perform comprehensive OWASP Top 10 2021 compliance validation
   - **Sample code requirement**:
     ```python
     def scan_for_secrets(self, file_path: str) -> List[SecurityFinding]:
@@ -131,8 +132,9 @@
         }
         # implementation
     ```
-  - **Deliverable**: `tests/test_security_agent.py` with mock vulnerabilities
-  - **Success**: Agent detects hardcoded API key in test file and sends alert to SW Dev agent
+  - **Deliverable**: `src/security/owasp_validator.py` with full OWASP Top 10 2021 validation
+  - **Deliverable**: `tests/test_security_agent.py` with comprehensive OWASP tests (TestOWASPValidation)
+  - **Success**: Agent detects hardcoded API key in test file, sends alert to SW Dev agent, and provides OWASP compliance reports
 
 - [x] **Task 3.2**: Implement Software Development Agent for backend code generation
   - **Deliverable**: `src/agents/dev_agent.py` class `SoftwareDevAgent`
@@ -225,7 +227,7 @@
 ## Sample Task with Role Tag (How to use in TASKS.md)
 
 ```markdown
-- [ ] [SECURITY] Implement OWASP Top 10 checklist validation
+- [x] [SECURITY] Implement OWASP Top 10 checklist validation
 - [ ] [SW_DEV] Create authentication API endpoint with JWT
 - [ ] [FRONTEND] Build responsive login form component
 - [ ] [SECURITY] Add rate limiting to login endpoint
