@@ -589,7 +589,7 @@ Return ONLY the complete HTML code without any explanatory text. Do not include 
 
         except Exception as e:
             logger.error(f"Login form generation failed: {e}")
-            return self._generate_fallback_login_form(custom_validations)
+            return await self._generate_fallback_login_form(custom_validations)
 
     async def _generate_fallback_login_form(
         self, custom_validations: Optional[Dict[str, Any]] = None
