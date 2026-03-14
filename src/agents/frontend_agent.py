@@ -402,6 +402,83 @@ class FrontendAgent(BaseAgent):
             logger.error(f"Frontend task failed: {e}", exc_info=True)
             raise
 
+    async def _generate_component(
+        self,
+        component_name: str,
+        requirements: List[str],
+        api_spec: Optional[Any] = None,
+    ) -> str:
+        """
+        Generate a frontend component using AI.
+
+        Args:
+            component_name: Name of the component to generate
+            requirements: List of requirements and features
+            api_spec: Optional API specification for backend integration
+
+        Returns:
+            Generated HTML/CSS/JS code as string
+        """
+        # Build prompt using existing helper
+        prompt = self._build_component_prompt(component_name, requirements, api_spec)
+
+        try:
+            code = await self._call_openrouter(prompt)
+
+            # Extract code from markdown blocks if present
+            if "```html" in code:
+                start = code.find("```html") + 7
+                end = code.find("```", start)
+                if end != -1:
+                    code = code[start:end].strip()
+            elif "```" in code:
+                start = code.find("```") + 3
+                end = code.find("```", start)
+                if end != -1:
+                    code = code[start:end].strip()
+
+            return code
+
+        except Exception as e:
+            logger.error(f"Component generation failed: {e}")
+            # Return basic fallback component
+            return self._generate_fallback_component(component_name, requirements)
+
+    def _generate_fallback_component(
+        self, component_name: str, requirements: List[str]
+    ) -> str:
+        """Generate a basic fallback component when AI is unavailable."""
+        req_text = (
+            "\n".join(f"- {req}" for req in requirements)
+            if requirements
+            else "Standard UI component"
+        )
+
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{component_name}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-4">
+    <main class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h1 class="text-2xl font-bold text-gray-900 mb-4">{component_name}</h1>
+            <p class="text-gray-600 mb-4">This is a generated component with the following requirements:</p>
+            <ul class="list-disc pl-5 space-y-2 mb-6">
+                {"".join(f"<li>{req}</li>" for req in requirements[:5])}
+                {"<li>... and more</li>" if len(requirements) > 5 else ""}
+            </ul>
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded">
+                <p class="text-blue-800"><strong>Note:</strong> Set OPENROUTER_API_KEY to enable AI-powered component generation.</p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>"""
+
     async def _generate_login_form(
         self,
         api_spec: Optional[ApiSpec] = None,
